@@ -1,0 +1,128 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local autofarm = false
+
+-- Lokasi komputer
+local workLocation = Vector3.new(-5910, 2, -451)
+
+-- Teleport
+local function tp(pos)
+	local char = player.Character or player.CharacterAdded:Wait()
+	char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos + Vector3.new(0,3,0))
+end
+
+-- Tekan tombol (simulasi click)
+local function clickUI(uiObj)
+	if not uiObj then return end
+	local absPos = uiObj.AbsolutePosition
+	local absSize = uiObj.AbsoluteSize
+	local x = absPos.X + absSize.X / 2
+	local y = absPos.Y + absSize.Y / 2
+	VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+	task.wait(0.05)
+	VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+end
+
+-- Hitung soal teks
+local function solveMath(text)
+	local a, op, b = string.match(text, "(%d+)%s*([%+%-%*/x:])%s*(%d+)")
+	if not a or not op or not b then return nil end
+	
+	a = tonumber(a)
+	b = tonumber(b)
+
+	if op == "+" then return a + b end
+	if op == "-" then return a - b end
+	if op == "*" or op == "x" or op == "X" then return a * b end
+	if op == "/" or op == ":" then 
+		if b == 0 then return nil end
+		return a / b 
+	end
+	return nil
+end
+
+-- Cari soal + tombol jawaban otomatis
+local function findAndSolve()
+	local question = nil
+	local answers = {}
+
+	-- Scan semua GUI
+	for _, gui in ipairs(game:GetService("CoreGui"):GetDescendants()) do
+		if gui:IsA("TextLabel") or gui:IsA("TextButton") then
+			local txt = gui.Text or ""
+
+			-- Deteksi soal
+			if txt:match("%d+%s*[%+%-%*/x:]%s*%d+") then
+				question = gui
+			end
+
+			-- Deteksi tombol jawaban (harus angka)
+			if txt:match("^%d+$") then
+				table.insert(answers, gui)
+			end
+		end
+	end
+
+	if not question or #answers == 0 then return end
+
+	-- Hitung hasil
+	local result = solveMath(question.Text)
+	if not result then return end
+
+	-- Temukan jawaban yang cocok
+	for _, btn in ipairs(answers) do
+		if tonumber(btn.Text) == result then
+			clickUI(btn)
+			return
+		end
+	end
+end
+
+-- AUTO FARM LOOP
+local function startAutoFarm()
+	if autofarm then return end
+	autofarm = true
+
+	task.spawn(function()
+		while autofarm do
+			-- Teleport ke komputer
+			tp(workLocation)
+			task.wait(1)
+
+			-- Cari dan jawab soal
+			findAndSolve()
+
+			-- Delay sebelum soal berikut
+			task.wait(1)
+		end
+	end)
+end
+
+local function stopAutoFarm()
+	autofarm = false
+end
+
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Position = UDim2.new(0, 30, 0, 150)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+local startBtn = Instance.new("TextButton", frame)
+startBtn.Text = "Start AutoFarm"
+startBtn.Size = UDim2.new(1, -20, 0, 40)
+startBtn.Position = UDim2.new(0, 10, 0, 10)
+startBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+
+local stopBtn = Instance.new("TextButton", frame)
+stopBtn.Text = "Stop AutoFarm"
+stopBtn.Size = UDim2.new(1, -20, 0, 40)
+stopBtn.Position = UDim2.new(0, 10, 0, 60)
+stopBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
+
+startBtn.MouseButton1Click:Connect(startAutoFarm)
+stopBtn.MouseButton1Click:Connect(stopAutoFarm)
