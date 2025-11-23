@@ -1,106 +1,169 @@
--- LocalScript di StarterPlayerScripts
-
-local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Buat ScreenGui
+-- SCREEN GUI UTAMA
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BillHubUI"
+screenGui.Name = "BillhubGui"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Tombol Bulat B (Launcher)
+------------------------------------
+--  TOMBOL BULAT B (Launcher)     --
+------------------------------------
 local toggleButton = Instance.new("TextButton")
 toggleButton.Size = UDim2.new(0, 70, 0, 70)
 toggleButton.Position = UDim2.new(0, 30, 0.5, -35)
 toggleButton.AnchorPoint = Vector2.new(0, 0.5)
 toggleButton.Text = "B"
-toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Putih supaya jelas
-toggleButton.TextColor3 = Color3.fromRGB(0, 0, 0) -- Hitam (kontras)
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 toggleButton.Font = Enum.Font.GothamBold
 toggleButton.TextSize = 32
 toggleButton.BorderSizePixel = 0
 toggleButton.AutoButtonColor = true
 toggleButton.Draggable = true
 toggleButton.Active = true
-toggleButton.ZIndex = 10 -- Supaya selalu di atas UI lain
+toggleButton.ZIndex = 10
 toggleButton.Parent = screenGui
 
--- Menu Utama
+------------------------------------------------
+-- FRAME MENU UTAMA AUTO FARM KURIR (TERSEMBUNYI)
+------------------------------------------------
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 260)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -130)
-mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-mainFrame.Visible = false
+mainFrame.Size = UDim2.new(0, 320, 0, 360)
+mainFrame.Position = UDim2.new(0, 120, 0.5, -180)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+mainFrame.Active = true
+mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
--- Header Premium BillHub
-local header = Instance.new("TextLabel")
-header.Size = UDim2.new(1, 0, 0, 40)
-header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-header.Text = "Premium  |  BillHub"
-header.TextColor3 = Color3.fromRGB(220, 220, 220)
-header.Font = Enum.Font.GothamBold
-header.TextSize = 22
-header.Parent = mainFrame
+-- TITLE BAR
+local titleBar = Instance.new("TextLabel")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+titleBar.Text = "Premium  |  billhub"
+titleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleBar.Font = Enum.Font.GothamBold
+titleBar.TextSize = 18
+titleBar.Parent = mainFrame
 
--- Tombol Auto Farm Kurir
+-------------------------------
+-- TOMBOL AUTO FARM KURIR
+-------------------------------
 local farmButton = Instance.new("TextButton")
 farmButton.Size = UDim2.new(0, 280, 0, 50)
-farmButton.Position = UDim2.new(0.5, -140, 0, 70)
-farmButton.Text = "Auto Farm Kurir : OFF"
-farmButton.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
-farmButton.TextColor3 = Color3.new(1,1,1)
+farmButton.Position = UDim2.new(0, 20, 0, 70)
+farmButton.Text = "Start Auto Farm Kurir"
+farmButton.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+farmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 farmButton.Font = Enum.Font.GothamBold
 farmButton.TextSize = 18
+farmButton.BorderSizePixel = 0
 farmButton.Parent = mainFrame
 
--- Delay Display
-local delayLabel = Instance.new("TextLabel")
-delayLabel.Size = UDim2.new(0, 280, 0, 40)
-delayLabel.Position = UDim2.new(0.5, -140, 0, 130)
-delayLabel.Text = "Delay: 18 Detik"
-delayLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-delayLabel.TextColor3 = Color3.new(1,1,1)
-delayLabel.Font = Enum.Font.Gotham
-delayLabel.TextSize = 16
-delayLabel.Parent = mainFrame
+-------------------------------
+-- DELAY TEXT BOX
+-------------------------------
+local delayBox = Instance.new("TextBox")
+delayBox.Size = UDim2.new(0, 120, 0, 40)
+delayBox.Position = UDim2.new(0, 20, 0, 140)
+delayBox.PlaceholderText = "Delay (18)"
+delayBox.Text = "18"
+delayBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+delayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+delayBox.Font = Enum.Font.Gotham
+delayBox.TextSize = 16
+delayBox.BorderSizePixel = 0
+delayBox.Parent = mainFrame
 
--- Notifikasi Sampng Layar
-local notification = Instance.new("TextLabel")
-notification.Size = UDim2.new(0, 250, 0, 30)
-notification.Position = UDim2.new(1, -260, 0.8, 0)
-notification.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-notification.TextColor3 = Color3.new(1,1,1)
-notification.Font = Enum.Font.Gotham
-notification.TextSize = 16
-notification.Visible = false
-notification.Parent = screenGui
+--------------------------------
+-- PROGRESS LABEL
+--------------------------------
+local progressLabel = Instance.new("TextLabel")
+progressLabel.Size = UDim2.new(0, 280, 0, 40)
+progressLabel.Position = UDim2.new(0, 20, 0, 200)
+progressLabel.Text = "Progress: -"
+progressLabel.BackgroundTransparency = 1
+progressLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+progressLabel.Font = Enum.Font.Gotham
+progressLabel.TextSize = 16
+progressLabel.Parent = mainFrame
 
--- Fungsi Toggle Menu
-toggleButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
+--------------------------------
+-- NOTIFIKASI TELEPORT
+--------------------------------
+local notifLabel = Instance.new("TextLabel")
+notifLabel.Size = UDim2.new(0, 250, 0, 35)
+notifLabel.Position = UDim2.new(1, -260, 0, 20) -- Tepi kanan layar
+notifLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+notifLabel.Text = ""
+notifLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifLabel.Font = Enum.Font.GothamBold
+notifLabel.TextSize = 14
+notifLabel.Visible = false
+notifLabel.Parent = screenGui
 
--- Fungsi Kecil untuk Notifikasi
+---------------------------------------------
+-- Fungsi Notifikasi Teleport
+---------------------------------------------
 local function showNotification(text)
-    notification.Text = text
-    notification.Visible = true
-    wait(2)
-    notification.Visible = false
+    notifLabel.Text = text
+    notifLabel.Visible = true
+    task.delay(2.5, function()
+        notifLabel.Visible = false
+    end)
 end
 
--- Saat Tombol Farm diklik (Masih UI Saja)
+---------------------------------------------
+-- FUNGSI AUTO FARM KURIR
+---------------------------------------------
+local waypoints = {
+    [1] = Vector3.new(-100, 5, 200), -- TEMPAT AMBIL JOB
+    [2] = Vector3.new(250, 5, -300),
+    [3] = Vector3.new(400, 5, 600),
+    [4] = Vector3.new(-500, 5, -800),
+    [5] = Vector3.new(700, 5, 200),
+    [6] = Vector3.new(-200, 5, -400),
+}
+
+local farming = false
+
 farmButton.MouseButton1Click:Connect(function()
-    local isActive = farmButton.Text:find("OFF")
-    if isActive then
-        farmButton.Text = "Auto Farm Kurir : ON"
-        farmButton.BackgroundColor3 = Color3.fromRGB(30, 150, 30)
-        showNotification("Auto Farm Kurir Aktif!")
-    else
-        farmButton.Text = "Auto Farm Kurir : OFF"
-        farmButton.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
-        showNotification("Auto Farm Kurir Dimatikan.")
+    farming = not farming
+    farmButton.Text = farming and "Stop Auto Farm" or "Start Auto Farm Kurir"
+
+    if farming then
+        task.spawn(function()
+            while farming do
+                local delayTime = tonumber(delayBox.Text) or 18
+
+                -- Ambil JOB
+                progressLabel.Text = "Progress: Mengambil Job..."
+                game.Players.LocalPlayer.Character:MoveTo(waypoints[1])
+                showNotification("Teleport ke Job")
+                task.wait(2)
+
+                -- LOOP FARM
+                for i = 2, 6 do
+                    if not farming then break end
+
+                    progressLabel.Text = "Tujuan ke-" .. (i - 1)
+                    game.Players.LocalPlayer.Character:MoveTo(waypoints[i])
+                    showNotification("Teleport ke lokasi " .. (i - 1))
+                    task.wait(delayTime)
+
+                    -- AUTO KLIK F
+                    keypress(0x46)
+                    task.wait(0.6)
+                    keyrelease(0x46)
+                end
+            end
+        end)
     end
+end)
+
+---------------------------------
+-- Toggle Menu dari Bulatan B
+---------------------------------
+toggleButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
 end)
