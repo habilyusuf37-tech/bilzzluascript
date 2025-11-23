@@ -1,149 +1,95 @@
--- ====== GUI SETUP ====== --
+-- 📌 Main UI Setup
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local CloseButton = Instance.new("TextButton")
-local Sidebar = Instance.new("Frame")
-local AutoTeleportButton = Instance.new("TextButton")
-local AutoFarmButton = Instance.new("TextButton")
-local AutoFButton = Instance.new("TextButton")
-local DelayBox = Instance.new("TextBox")
-local DelayLabel = Instance.new("TextLabel")
 
--- ====== UI DESIGN ====== --
-MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 420, 0, 300)
-MainFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.Active = true
-MainFrame.Draggable = true
+-- 🔵 Tombol Bulat B untuk membuka menu
+local OpenButton = Instance.new("TextButton", ScreenGui)
+OpenButton.Size = UDim2.new(0, 60, 0, 60)
+OpenButton.Position = UDim2.new(0.05, 0, 0.3, 0)
+OpenButton.Text = "B"
+OpenButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+OpenButton.TextColor3 = Color3.new(1,1,1)
+OpenButton.Font = Enum.Font.SourceSansBold
+OpenButton.TextSize = 24
+Instance.new("UICorner", OpenButton)
 
-Title.Parent = MainFrame
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-Title.Text = "Bill Hub"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 22
+-- 🪟 Menu utama (tampil saat tombol B ditekan)
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.Position = UDim2.new(0.15, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.Visible = false
+Instance.new("UICorner", MainFrame)
 
-CloseButton.Parent = MainFrame
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 5)
-CloseButton.Text = "X"
-CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+-- 🎛️ Tombol Auto Farm
+local ToggleButton = Instance.new("TextButton", MainFrame)
+ToggleButton.Size = UDim2.new(0, 250, 0, 50)
+ToggleButton.Position = UDim2.new(0.08, 0, 0.05, 0)
+ToggleButton.Text = "OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ToggleButton.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", ToggleButton)
 
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- ====== BUTTONS ======
-AutoTeleportButton.Parent = MainFrame
-AutoTeleportButton.Size = UDim2.new(0, 250, 0, 40)
-AutoTeleportButton.Position = UDim2.new(0, 140, 0, 60)
-AutoTeleportButton.Text = "Auto Teleport: OFF"
-AutoTeleportButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-AutoTeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-AutoFarmButton.Parent = MainFrame
-AutoFarmButton.Size = UDim2.new(0, 250, 0, 40)
-AutoFarmButton.Position = UDim2.new(0, 140, 0, 110)
-AutoFarmButton.Text = "Auto Farm: OFF"
-AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-AutoFarmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-AutoFButton.Parent = MainFrame
-AutoFButton.Size = UDim2.new(0, 250, 0, 40)
-AutoFButton.Position = UDim2.new(0, 140, 0, 160)
-AutoFButton.Text = "Auto F (Ambil Item): OFF"
-AutoFButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-AutoFButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-DelayLabel.Parent = MainFrame
-DelayLabel.Size = UDim2.new(0, 250, 0, 25)
-DelayLabel.Position = UDim2.new(0, 140, 0, 205)
-DelayLabel.Text = "Delay Teleport (Detik)"
-DelayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-DelayLabel.BackgroundTransparency = 1
-DelayLabel.TextSize = 16
-
-DelayBox.Parent = MainFrame
-DelayBox.Size = UDim2.new(0, 250, 0, 30)
-DelayBox.Position = UDim2.new(0, 140, 0, 230)
-DelayBox.Text = "15"
-DelayBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-DelayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-
--- ====== LOGIC VARIABLES ======
-local waypointIndex = 1
-local teleportOn = false
-local farmOn = false
-local autoF = false
+-- Status Auto Farm
+local autoFarm = false
 local delayTime = 15
 
--- ====== WAYPOINT COORDINATES ======
+ToggleButton.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    ToggleButton.Text = autoFarm and "ON" or "OFF"
+    ToggleButton.BackgroundColor3 = autoFarm and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+end)
+
+-- 🗺 Waypoint List (langsung teleport ke titik pilihan)
 local waypoints = {
-    Vector3.new(-5111, 5, -3760), -- 1
-    Vector3.new(-6795, 3, -444),  -- 2
-    Vector3.new(-17053, 104, 6567), -- 3
-    Vector3.new(-6741, 3, 2975), -- 4
-    Vector3.new(-8777, 3, 644),  -- 5
-    Vector3.new(-8382, 2, -3822) -- 6
+    ["MANAHAN"] = Vector3.new(-5111, 5, -3760),
+    ["COURIER"] = Vector3.new(-6795, 3, -444),
+    ["SPBU"] = Vector3.new(-17053, 104, 6567),
+    ["BANK"] = Vector3.new(-6741, 3, 2975),
+    ["PASAR"] = Vector3.new(-8777, 3, 644),
+    ["RUMAH"] = Vector3.new(-8382, 2, -3822)
 }
 
--- ====== TELEPORT FUNCTION ======
+-- 🛰 Fungsi Teleport + Auto Tekan F
 local function teleportTo(position)
     local player = game.Players.LocalPlayer
-    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+    if player and player.Character then
         player.Character:MoveTo(position)
+
+        -- 🔘 Auto Tekan F (ambil item / interaksi)
+        local vim = game:GetService("VirtualInputManager")
+        task.wait(1)
+        pcall(function()
+            vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            task.wait(0.3)
+            vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        end)
     end
 end
 
--- ====== BUTTON TOGGLES ======
-AutoTeleportButton.MouseButton1Click:Connect(function()
-    teleportOn = not teleportOn
-    AutoTeleportButton.Text = teleportOn and "Auto Teleport: ON" or "Auto Teleport: OFF"
-    AutoTeleportButton.BackgroundColor3 = teleportOn and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-end)
+-- 📦 Generate Tombol Teleport
+local yPos = 0.2
+for name, pos in pairs(waypoints) do
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 250, 0, 40)
+    btn.Position = UDim2.new(0.08, 0, yPos, 0)
+    btn.Text = "Teleport: "..name
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", btn)
 
-AutoFarmButton.MouseButton1Click:Connect(function()
-    farmOn = not farmOn
-    AutoFarmButton.Text = farmOn and "Auto Farm: ON" or "Auto Farm: OFF"
-    AutoFarmButton.BackgroundColor3 = farmOn and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-end)
-
-AutoFButton.MouseButton1Click:Connect(function()
-    autoF = not autoF
-    AutoFButton.Text = autoF and "Auto F (Ambil Item): ON" or "Auto F (Ambil Item): OFF"
-    AutoFButton.BackgroundColor3 = autoF and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-end)
-
--- ====== AUTO PRESS F FUNCTION ======
-task.spawn(function()
-    while true do
-        if autoF then
-            game:GetService("VirtualInputManager"):SendKeyEvent(true, "F", false, game)
-            task.wait(0.2)
-            game:GetService("VirtualInputManager"):SendKeyEvent(false, "F", false, game)
-        end
-        task.wait(15)
-    end
-end)
-
--- ====== MAIN TELEPORT LOOP ======
-task.spawn(function()
-    while true do
-        delayTime = tonumber(DelayBox.Text) or 15
-        
-        if teleportOn then
-            teleportTo(waypoints[waypointIndex])
-            print("Teleport ke waypoint:", waypointIndex)
-            
-            waypointIndex = waypointIndex + 1
-            if waypointIndex > #waypoints then
-                waypointIndex = 1
-            end
-            
+    btn.MouseButton1Click:Connect(function()
+        if autoFarm then
+            teleportTo(pos)
             task.wait(delayTime)
+        else
+            teleportTo(pos)
         end
-        task.wait(1)
-    end
+    end)
+
+    yPos = yPos + 0.13
+end
+
+-- 🎯 Buka/Tutup Menu pakai tombol B
+OpenButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
 end)
