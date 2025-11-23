@@ -1,199 +1,194 @@
--- =============================================
--- CDID AUTOFARM V3 - BULATAN MENU + ON/OFF
--- Tekan bulatan hijau kiri bawah → buka menu
--- =============================================
+-- Roblox Autofarm Script with UI Menu
+-- Features: Autofarm with 55s delay, High Ping Detection, Earn Cash, Delay Settings, Accurate Waypoints
+-- UI: Toggle menu with a circle button in top-left corner
+-- Note: This script assumes you're using a Roblox executor that supports GUI (e.g., Synapse, Krnl). Run in LocalScript.
 
-local menuOpen     = false
-local autoFarm     = false
-local delayTimer   = 0
-local customDelay  = 40
-local selectedPay  = 7500
-local totalEarned  = 0
-local deliveries   = 0
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")  -- For potential API calls if needed
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
--- KOORDINAT TELEPORT 100% AKURAT
-local Points = {
-    vector3(-13002.09, 1051.89, -16360.71),
-    vector3(-25909.39, 1050.33, -43890.75),
-    vector3(-38720.98, 1013.07, -62484.11),
-    vector3(-50884.77, 1012.89, -86511.50),
-    vector3(-21798.52, 1042.03, -26797.30), -- bonus
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Waypoints (100% accurate with provided coordinates)
+local waypoints = {
+    Vector3.new(-13007.67, 1051.88, -16369.39),
+    Vector3.new(-38723.95, 1013.15, -62498.38),
+    Vector3.new(-50885.80, 1012.89, -86516.27),
+    Vector3.new(-25909.67, 1050.33, -43893.98)
 }
 
--- GAJI PER DELIVERY
-local Payments = {5500, 7200, 8500, 10500, 12000}
-local payIndex = 2
+-- Settings
+local autofarmEnabled = false
+local delayTime = 55  -- Default delay in seconds
+local highPingThreshold = 200  -- Ping above this pauses autofarm (in ms)
+local currentWaypointIndex = 1
 
--- BULATAN MENU (pojok kiri bawah)
-local function DrawMenuCircle()
-    local x, y = 0.08, 0.85
-    DrawSprite("mpleaderboard", "leaderboard_friends_icon", x, y, 0.06, 0.1, 0.0, 
-              autoFarm and 0 or 0, 
-              autoFarm and 255 or 180, 
-              autoFarm and 255 or 180, 255)
-    
-    -- Tulisan kecil di dalam bulatan
-    SetTextFont(4)
-    SetTextScale(0.0, 0.35)
-    SetTextColour(255, 255, 255, 255)
-    SetTextCentre(true)
-    BeginTextCommandDisplayText("STRING")
-    AddTextComponentSubstringPlayerName(autoFarm and "ON" or "OFF")
-    EndTextCommandDisplayText(x, y - 0.025)
-
-    -- Deteksi klik bulatan
-    if IsMouseInRegion(x-0.03, y-0.05, x+0.03, y+0.05) then
-        DrawSprite("mpleaderboard", "leaderboard_friends_icon", x, y, 0.07, 0.11, 0.0, 100, 255, 100, 255)
-        if IsControlJustReleased(0, 24) then -- klik kiri
-            menuOpen = not menuOpen
-        end
-    end
+-- High Ping Detection Function
+local function getPing()
+    -- Approximate ping using NetworkSettings or a simple method
+    local stats = game:GetService("NetworkClient"):GetNetworkStats()
+    return stats.Ping  -- This might need adjustment based on Roblox API changes
 end
 
--- SHOW SEMUA POINT 100% AKURAT
-CreateThread(function()
+local function isHighPing()
+    return getPing() > highPingThreshold
+end
+
+-- Teleport Function (Accurate with Tween for smoothness)
+local function teleportTo(position)
+    if not character or not humanoidRootPart then return end
+    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)  -- Adjust time for smoothness
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(position)})
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+-- Earn Cash Function (Placeholder - Customize based on game, e.g., invoke remote for cash)
+local function earnCash()
+    -- Example: Fire a remote event to earn cash (replace with actual game remote)
+    -- ReplicatedStorage.Remotes.EarnCash:FireServer(100)  -- Uncomment and adjust
+    print("Earning cash...")  -- Placeholder
+end
+
+-- Autofarm Loop
+spawn(function()
     while true do
-        Wait(0)
-        for _, v in ipairs(Points) do
-            DrawMarker(28, v.x, v.y, v.z + 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 5.0, 3.0, 0, 255, 100, 150, false, true, 2, false, nil, nil, false)
-            DrawText3D(v.x, v.y, v.z + 3.0, "~g~CDID POINT~w~\nGaji: ~g~$"..selectedPay)
-        end
-    end
-end)
-
--- AUTOFARM LOOP
-CreateThread(function()
-    while true do
-        Wait(1000)
-        if not autoFarm then goto continue end
-
-        -- HIGH PING DETECT
-        if GetPlayerPing(PlayerId()) > 250 then
-            ShowNotification("~r~High Ping Terdeteksi! Farm dipause...")
-            Wait(15000)
-            goto continue
-        end
-
-        -- Teleport random
-        local p = Points[math.random(#Points)]
-        SetEntityCoords(PlayerPedId(), p.x, p.y, p.z + 2.0, false, false, false, true)
-
-        -- Countdown
-        for i = customDelay, 0, -1 do
-            delayTimer = i
-            Wait(1000)
-            if not autoFarm or GetPlayerPing(PlayerId()) > 250 then break end
-        end
-
-        -- Reward
-        TriggerServerEvent("cdid:reward", selectedPay)
-        totalEarned = totalEarned + selectedPay
-        deliveries   = deliveries + 1
-        ShowNotification("~g~+ $"..selectedPay.." ~w~| Total: ~g~$"..totalEarned)
-
-        ::continue::
-    end
-end)
-
--- MENU UTAMA
-CreateThread(function()
-    while true do
-        Wait(0)
-        DrawMenuCircle()
-
-        if menuOpen then
-            -- Background
-            DrawRect(0.5, 0.5, 0.4, 0.6, 0, 0, 0, 220)
-
-            -- Title
-            DrawText2D(0.35, 0.25, "CDID TELEPORT AUTOFARM", 0.8, {0, 255, 0, 255})
-
-            -- ON/OFF BESAR
-            if DrawBigButton(0.5, 0.38, autoFarm and "~r~STOP AUTOFARM" or "~g~START AUTOFARM", autoFarm and {255,50,50,255} or {50,255,50,255}) then
-                autoFarm = not autoFarm
-            end
-
-            -- Pilihan Gaji
-            DrawText2D(0.36, 0.48, "Gaji per Delivery:", 0.55, {255,255,255,255})
-            for i, pay in ipairs(Payments) do
-                local color = (payIndex == i) and "~g~" or "~w~"
-                if DrawButton(0.38, 0.52 + (i-1)*0.045, 0.24, 0.04, color.."$"..pay) then
-                    payIndex = i
-                    selectedPay = pay
-                end
-            end
-
-            -- Delay
-            DrawText2D(0.36, 0.72, "Delay: ~y~"..customDelay.." ~w~detik", 0.6, {255,255,255,255})
-            if DrawButton(0.48, 0.72, 0.04, 0.04, "-") and customDelay > 15 then customDelay = customDelay - 5 end
-            if DrawButton(0.58, 0.72, 0.04, 0.04, "+") and customDelay < 120 then customDelay = customDelay + 5 end
-
-            -- Stats
-            DrawText2D(0.36, 0.78, "Delivery   : ~g~"..deliveries, 0.55, {255,255,255,255})
-            DrawText2D(0.36, 0.82, "Total Earn : ~g~$"..string.format("%.0f", totalEarned), 0.6, {255,255,255,255})
-            DrawText2D(0.36, 0.86, "Timer      : ~y~"..delayTimer.." ~w~detik", 0.7, {255,255,0,255})
-
-            -- Ping
-            local ping = GetPlayerPing(PlayerId())
-            DrawText2D(0.5, 0.92, ping > 250 and "~r~PING TINGGI: "..ping.."ms" or "~g~Ping: "..ping.."ms", 0.5, {255,255,255,255})
-        else
-            -- Mini HUD kalau menu ditutup
-            if autoFarm then
-                DrawText2D(0.85, 0.02, "~g~CDID ON~w~ | Next: ~y~"..delayTimer.."s~w~ | Earned: ~g~$"..string.format("%.0f", totalEarned), 0.45, {255,255,255,255})
+        if autofarmEnabled then
+            if isHighPing() then
+                print("High ping detected! Pausing autofarm...")
+                wait(10)  -- Wait before checking again
+            else
+                local targetPos = waypoints[currentWaypointIndex]
+                teleportTo(targetPos)
+                earnCash()  -- Earn cash at waypoint
+                currentWaypointIndex = currentWaypointIndex % #waypoints + 1
+                wait(delayTime)
             end
         end
+        wait(1)  -- Loop check interval
     end
 end)
 
--- SERVER EVENT (taruh di server.lua)
---[[
-RegisterNetEvent('cdid:reward')
-AddEventHandler('cdid:reward', function(amount)
-    local src = source
-    local Player = QBCore.Functions.GetPlayer(src) -- atau ESX.GetPlayerFromId(src)
-    Player.Functions.AddMoney('bank', amount, "CDID Delivery")
+-- UI Setup (Using ScreenGui with Circle Button for Toggle)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "AutofarmUI"
+
+-- Toggle Button (Circle in top-left corner)
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.BackgroundColor3 = Color3.new(0, 0, 0)
+toggleButton.BackgroundTransparency = 0.5
+toggleButton.Image = "rbxassetid://0"  -- No image for circle, use corner radius
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(1, 0)  -- Full circle
+uiCorner.Parent = toggleButton
+toggleButton.Parent = screenGui
+
+-- Main Menu Frame (Hidden initially)
+local menuFrame = Instance.new("Frame")
+menuFrame.Size = UDim2.new(0, 300, 0, 400)
+menuFrame.Position = UDim2.new(0, 70, 0, 10)
+menuFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+menuFrame.Visible = false
+menuFrame.Parent = screenGui
+
+-- Add UI Corner to menu for rounded edges
+local menuCorner = Instance.new("UICorner")
+menuCorner.Parent = menuFrame
+
+-- Toggle Autofarm Button
+local autofarmToggle = Instance.new("TextButton")
+autofarmToggle.Size = UDim2.new(1, 0, 0, 50)
+autofarmToggle.Position = UDim2.new(0, 0, 0, 0)
+autofarmToggle.Text = "Autofarm: OFF"
+autofarmToggle.Parent = menuFrame
+autofarmToggle.MouseButton1Click:Connect(function()
+    autofarmEnabled = not autofarmEnabled
+    autofarmToggle.Text = "Autofarm: " .. (autofarmEnabled and "ON" or "OFF")
 end)
---]]
 
--- FUNGSI BANTUAN
-function DrawText3D(x,y,z,text)
-    SetTextScale(0.4,0.4); SetTextFont(4); SetTextColour(255,255,255,255)
-    BeginTextCommandDisplayText("STRING"); AddTextComponentSubstringPlayerName(text)
-    SetDrawOrigin(x,y,z,0); EndTextCommandDisplayText(0.0,0.0); ClearDrawOrigin()
-end
+-- Delay Setting TextBox
+local delayLabel = Instance.new("TextLabel")
+delayLabel.Size = UDim2.new(1, 0, 0, 50)
+delayLabel.Position = UDim2.new(0, 0, 0, 50)
+delayLabel.Text = "Delay Time: " .. delayTime .. "s"
+delayLabel.Parent = menuFrame
 
-function DrawText2D(x,y,text,scale,color)
-    SetTextScale(scale,scale); SetTextFont(4); SetTextColour(color[1],color[2],color[3],color[4] or 255)
-    BeginTextCommandDisplayText("STRING"); AddTextComponentSubstringPlayerName(text)
-    EndTextCommandDisplayText(x,y)
-end
-
-function DrawRect(x,y,w,h,r,g,b,a) DrawRect(x,y,w,h,r,g,b,a) end
-
-function DrawBigButton(x,y,text,color)
-    DrawRect(x, y, 0.25, 0.08, 30,30,30,240)
-    DrawText2D(x-0.11, y-0.02, text, 0.6, color)
-    if IsMouseInRegion(x-0.125, y-0.04, x+0.125, y+0.04) and IsControlJustPressed(0,24) then
-        return true
+local delayBox = Instance.new("TextBox")
+delayBox.Size = UDim2.new(1, 0, 0, 50)
+delayBox.Position = UDim2.new(0, 0, 0, 100)
+delayBox.PlaceholderText = "Enter new delay (seconds)"
+delayBox.Parent = menuFrame
+delayBox.FocusLost:Connect(function()
+    local newDelay = tonumber(delayBox.Text)
+    if newDelay then
+        delayTime = newDelay
+        delayLabel.Text = "Delay Time: " .. delayTime .. "s"
     end
-    return false
-end
+    delayBox.Text = ""
+end)
 
-function DrawButton(x,y,w,h,text)
-    DrawRect(x+w/2, y+h/2, w, h, 40,40,40,220)
-    DrawText2D(x+0.005, y+0.005, text, 0.4, {255,255,255,255})
-    if IsMouseInRegion(x, y, x+w, y+h) and IsControlJustPressed(0,24) then return true end
-end
+-- High Ping Threshold Setting
+local pingLabel = Instance.new("TextLabel")
+pingLabel.Size = UDim2.new(1, 0, 0, 50)
+pingLabel.Position = UDim2.new(0, 0, 0, 150)
+pingLabel.Text = "High Ping Threshold: " .. highPingThreshold .. "ms"
+pingLabel.Parent = menuFrame
 
-function IsMouseInRegion(l,t,r,b)
-    local mx,my = GetNuiCursorPosition()
-    local resx,resy = GetActiveScreenResolution()
-    mx = mx/resx; my = my/resy
-    return mx >= l and mx <= r and my >= t and my <= b
-end
+local pingBox = Instance.new("TextBox")
+pingBox.Size = UDim2.new(1, 0, 0, 50)
+pingBox.Position = UDim2.new(0, 0, 0, 200)
+pingBox.PlaceholderText = "Enter new ping threshold (ms)"
+pingBox.Parent = menuFrame
+pingBox.FocusLost:Connect(function()
+    local newThreshold = tonumber(pingBox.Text)
+    if newThreshold then
+        highPingThreshold = newThreshold
+        pingLabel.Text = "High Ping Threshold: " .. highPingThreshold .. "ms"
+    end
+    pingBox.Text = ""
+end)
 
-function ShowNotification(msg)
-    SetNotificationTextEntry("STRING")
-    AddTextComponentString(msg)
-    DrawNotification(false,true)
-end
+-- Earn Cash Button
+local earnCashButton = Instance.new("TextButton")
+earnCashButton.Size = UDim2.new(1, 0, 0, 50)
+earnCashButton.Position = UDim2.new(0, 0, 0, 250)
+earnCashButton.Text = "Earn Cash Now"
+earnCashButton.Parent = menuFrame
+earnCashButton.MouseButton1Click:Connect(earnCash)
+
+-- Toggle Menu Visibility
+toggleButton.MouseButton1Click:Connect(function()
+    menuFrame.Visible = not menuFrame.Visible
+end)
+
+-- Make toggle button draggable (optional)
+local dragging = false
+toggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        local lastPos = input.Position
+        RunService:BindToRenderStep("Drag", Enum.RenderPriority.Input.Value, function()
+            if not dragging then return end
+            local delta = UserInputService:GetMouseLocation() - lastPos
+            toggleButton.Position = UDim2.new(toggleButton.Position.X.Scale, toggleButton.Position.X.Offset + delta.X, toggleButton.Position.Y.Scale, toggleButton.Position.Y.Offset + delta.Y)
+            lastPos = UserInputService:GetMouseLocation()
+        end)
+    end
+end)
+toggleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+        RunService:UnbindFromRenderStep("Drag")
+    end
+end)
+
+print("Autofarm Script Loaded! Click the circle button to open menu.")
