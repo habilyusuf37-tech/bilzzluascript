@@ -1,0 +1,64 @@
+-- GUI Toggle Menu
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ToggleButton = Instance.new("TextButton", ScreenGui)
+
+ToggleButton.Size = UDim2.new(0, 150, 0, 50)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.1, 0)
+ToggleButton.Text = "OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah (OFF)
+
+local autoFarm = false
+
+ToggleButton.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    if autoFarm then
+        ToggleButton.Text = "ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Hijau
+    else
+        ToggleButton.Text = "OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+    end
+end)
+
+-- List koordinat waypoint
+local waypoints = {
+    Vector3.new(-5111, 5, -3760),
+    Vector3.new(-6795, 3, -444),
+    Vector3.new(-17053, 104, 6567),
+    Vector3.new(-6741, 3, 2975),
+    Vector3.new(-8777, 3, 644),
+    Vector3.new(-8382, 2, -3822)
+}
+
+-- Fungsi teleport
+local function teleportTo(position)
+    local player = game.Players.LocalPlayer
+    if player and player.Character then
+        player.Character:MoveTo(position)
+    end
+end
+
+-- Mulai dari koordinat pertama saat tekan "E"
+local UserInputService = game:GetService("UserInputService")
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if input.KeyCode == Enum.KeyCode.E then
+        teleportTo(waypoints[1])
+    end
+end)
+
+-- Auto teleport loop
+task.spawn(function()
+    while true do
+        if autoFarm then
+            for _, coord in ipairs(waypoints) do
+                teleportTo(coord)
+                for i = 10, 1, -1 do
+                    print("Teleport dalam: "..i.." detik")
+                    task.wait(1)
+                end
+            end
+        end
+        task.wait(1)
+    end
+end)
