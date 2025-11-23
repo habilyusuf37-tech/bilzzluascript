@@ -1,0 +1,194 @@
+--[[
+    Nama Skrip: AutomatedDeliveryTeleport
+    Deskripsi: Skrip klien untuk teleportasi otomatis ke serangkaian koordinat
+               dengan simulasi tekan tombol 'E' dan waktu tunda yang berbeda.
+    Persyaratan: Harus dijalankan melalui Roblox Executor klien.
+]]
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Pastikan Karakter dimuat
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart", 10)
+
+-- Koordinat Pengantaran
+-- Format: {Vector3.new(X, Y, Z), "Nama Lokasi", Delay_Setelah_Aksi}
+local Coordinates = {
+    -- 1. Ambil Job (Pencet E, Delay 15 detik)
+    {Vector3.new(-5100, 5, -3759), "Job Pickup", 15}, 
+    -- 2. Pengantaran 1 (Pencet E, Delay 10 detik)
+    {Vector3.new(-6741, 3, 2975), "Antaran 1", 10}, 
+    -- 3. Pengantaran 2 (Pencet E, Delay 10 detik)
+    {Vector3.new(-17053, 104, 6567), "Antaran 2", 10}, 
+    -- 4. Pengantaran 3 (Pencet E, Delay 10 detik)
+    {Vector3.new(-6795, 3, -444), "Antaran 3", 10},
+    -- 5. Pengantaran 4 (Pencet E, Delay 10 detik)
+    {Vector3.new(8382, 2, -3822), "Antaran 4", 10},
+    -- 6. Pengantaran 5 (Pencet E, TIDAK ADA DELAY setelah yang terakhir)
+    {Vector3.new(8777, 3, 644), "Antaran 5", 0} 
+}
+
+-- Pengaturan
+local IsActive = false
+local IsRunning = false
+local Y_TELEPORT_OFFSET = 3 -- Margin keamanan Y untuk mencegah karakter terjebak di tanah
+
+--------------------
+-- FUNGSI INTI
+--------------------
+
+-- Fungsi untuk menyimulasikan penekanan tombol 'E'
+local function SimulateEPress(coord_data)
+    local label = coord_data[2]
+    
+    -- Ganti placeholder ini dengan fungsi simulasi input yang didukung oleh executor Anda.
+    -- Contoh umum yang sering didukung:
+    -- UserInputService:SimulateKeyPress(Enum.KeyCode.E)
+    
+    print("Simulasi Tekan 'E' (Sekali Klik) di: " .. label)
+end
+
+-- Fungsi Teleport
+local function TeleportPlayer(vector3_coord)
+    -- Perbarui referensi karakter/HRP
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart", 5)
+    
+    if not HumanoidRootPart or not Character:FindFirstChild("Humanoid") then 
+        print("Karakter tidak valid, menunggu respawn...")
+        Character = LocalPlayer.CharacterAdded:Wait()
+        HumanoidRootPart = Character:WaitForChild("HumanoidRootPart", 5)
+        if not HumanoidRootPart then return end
+    end
+    
+    -- Teleportasi menggunakan CFrame. Menambahkan offset Y untuk keamanan.
+    local safePosition = CFrame.new(vector3_coord) * CFrame.new(0, Y_TELEPORT_OFFSET, 0)
+    HumanoidRootPart.CFrame = safePosition
+    
+    -- Pindahkan kamera
+    game.Workspace.CurrentCamera.CFrame = HumanoidRootPart.CFrame
+    
+    print("Teleport berhasil ke: " .. tostring(vector3_coord))
+end
+
+-- Fungsi Urutan Utama
+local function RunTeleportSequence()
+    if IsRunning then return end
+    IsRunning = true
+    
+    print("Urutan Teleport Dimulai...")
+    
+    for i, coord_data in ipairs(Coordinates) do
+        if not IsActive then break end
+        
+        local vector3_coord = coord_data[1]
+        local label = coord_data[2]
+        local delay = coord_data[3]
+        
+        -- Aksi: Teleport dan Pencet E
+        TeleportPlayer(vector3_coord)
+        SimulateEPress(coord_data)
+        
+        -- Delay (jeda)
+        if delay > 0 and IsActive then 
+            for j = delay, 1, -1 do
+                if not IsActive then break end
+                DelayLabel.Text = "Delay: " .. j .. "s | Posisi " .. i .. ": " .. label
+                task.wait(1)
+            end
+        end
+        
+        if not IsActive then break end
+    end
+    
+    -- Setelah selesai (atau dihentikan), atur ulang status
+    IsActive = false
+    IsRunning = false
+    ToggleButton.Text = "OFF"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+    DelayLabel.Text = "Status: MATI (Selesai)"
+    print("Urutan Selesai atau Dihentikan.")
+end
+
+--------------------
+-- GUI SETUP (Otomatis)
+--------------------
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TeleportMenu"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 90)
+MainFrame.Position = UDim2.new(0.5, -110, 0, 5) -- Di tengah atas
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Text = "ROBLOX DELIVERY TELEPORT"
+TitleLabel.Size = UDim2.new(1, 0, 0, 20)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+TitleLabel.TextSize = 14
+TitleLabel.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Text = "OFF"
+ToggleButton.Size = UDim2.new(0, 200, 0, 30)
+ToggleButton.Position = UDim2.new(0.5, -100, 0, 25)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah (OFF)
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.TextSize = 18
+ToggleButton.Parent = MainFrame
+
+local DelayLabel = Instance.new("TextLabel")
+DelayLabel.Name = "DelayLabel"
+DelayLabel.Text = "Status: MATI | Tombol - (Sembunyi)"
+DelayLabel.Size = UDim2.new(0, 200, 0, 30)
+DelayLabel.Position = UDim2.new(0.5, -100, 0, 60)
+DelayLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+DelayLabel.TextColor3 = Color3.new(1, 1, 1)
+DelayLabel.TextSize = 14
+DelayLabel.Parent = MainFrame
+
+--------------------
+-- KONEKSI EVENT
+--------------------
+
+-- Toggle ON/OFF
+local function ToggleScript()
+    IsActive = not IsActive
+    if IsActive then
+        ToggleButton.Text = "ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0) -- Hijau
+        DelayLabel.Text = "Delay: Menunggu... | Status: AKTIF"
+        
+        -- Jalankan urutan di thread baru
+        task.spawn(RunTeleportSequence)
+    else
+        -- Menghentikan paksa loop yang sedang berjalan
+        ToggleButton.Text = "OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+        DelayLabel.Text = "Status: MATI (Dihentikan)"
+    end
+end
+
+ToggleButton.MouseButton1Click:Connect(ToggleScript)
+
+-- Sembunyikan/Tampilkan Menu dengan Tombol '-' (Minus)
+local function ToggleVisibility(input, gameProcessed)
+    -- KeyCode.Minus adalah tombol "-" di baris angka
+    if input.KeyCode == Enum.KeyCode.Minus and input.UserInputState == Enum.UserInputState.Begin then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end
+
+UserInputService.InputBegan:Connect(ToggleVisibility)
+
+print("Skrip Teleport Klien siap. Gunakan Tombol '-' untuk menyembunyikan/menampilkan menu.")
