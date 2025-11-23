@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Autofarm Simulation</title>
+<style>
+    body { background:#111; color:white; font-family:Arial; }
+    #menu {
+        position: fixed;
+        top: 20px; left: 20px;
+        background: #222;
+        padding: 15px;
+        border-radius: 10px;
+        width: 250px;
+        box-shadow: 0 0 10px #000;
+    }
+    .btn {
+        padding: 10px;
+        border: none;
+        width: 100%;
+        font-size: 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    #toggleBtn.green { background:#2ecc71; }
+    #toggleBtn.red { background:#e74c3c; }
+    #hideBtn {
+        background:#555;
+        color:white;
+        margin-top:10px;
+    }
+</style>
+</head>
+<body>
+
+<div id="menu">
+    <h3>Autofarm Menu</h3>
+    <button id="toggleBtn" class="btn red">OFF</button>
+    <div id="status">Status: <b style="color:red;">Stopped</b></div>
+    <div id="timer">Delay: -</div>
+    <button id="hideBtn" class="btn">Hide Menu (-)</button>
+</div>
+
+<script>
+    // --- KOORDINAT ---
+    const jobCoord = { x:-5100, y:5, z:-3759 };
+    const deliveryCoords = [
+        { x:-6741, y:3,  z:2975 },
+        { x:-17053, y:104, z:6567 },
+        { x:-6795, y:3, z:-444 },
+        { x:8382, y:2, z:-3822 },
+        { x:8777, y:3, z:644 }
+    ];
+
+    let running = false;
+    let index = 0;
+    const delay = 15000; // 15 detik
+    let timerInterval;
+
+    function logTeleport(coord) {
+        console.log(`Teleport ke: ${coord.x}, ${coord.y}, ${coord.z}`);
+    }
+
+    function logPressE() {
+        console.log("Aksi: Tekan E sekali");
+    }
+
+    function updateTimer(seconds) {
+        document.getElementById("timer").innerText = "Delay: " + seconds + "s";
+    }
+
+    function startCountdown(callback) {
+        let s = delay / 1000;
+        updateTimer(s);
+
+        timerInterval = setInterval(() => {
+            s--;
+            updateTimer(s);
+            if (s <= 0) {
+                clearInterval(timerInterval);
+                callback();
+            }
+        }, 1000);
+    }
+
+    function startAutofarm() {
+        running = true;
+        index = 0;
+
+        document.getElementById("toggleBtn").innerText = "ON";
+        document.getElementById("toggleBtn").className = "btn green";
+        document.querySelector("#status b").innerHTML = "Running";
+        document.querySelector("#status b").style.color = "lightgreen";
+
+        // STEP 1: Pergi ke job
+        logTeleport(jobCoord);
+        logPressE();
+
+        startCountdown(() => goNext());
+    }
+
+    function stopAutofarm() {
+        running = false;
+        clearInterval(timerInterval);
+
+        document.getElementById("toggleBtn").innerText = "OFF";
+        document.getElementById("toggleBtn").className = "btn red";
+        document.querySelector("#status b").innerHTML = "Stopped";
+        document.querySelector("#status b").style.color = "red";
+        updateTimer("-");
+    }
+
+    function goNext() {
+        if (!running) return;
+
+        if (index >= deliveryCoords.length) {
+            console.log("Semua checkpoint selesai!");
+            stopAutofarm();
+            return;
+        }
+
+        let coord = deliveryCoords[index];
+        logTeleport(coord);
+        logPressE();
+
+        index++;
+
+        startCountdown(() => goNext());
+    }
+
+    // --- BUTTON HANDLER ---
+    document.getElementById("toggleBtn").onclick = () => {
+        if (running) stopAutofarm();
+        else startAutofarm();
+    };
+
+    document.getElementById("hideBtn").onclick = () => {
+        const menu = document.getElementById("menu");
+        menu.style.display = "none";
+    };
+
+    // Tombol "-" untuk hide menu
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "-") {
+            const menu = document.getElementById("menu");
+            menu.style.display = (menu.style.display === "none" ? "block" : "none");
+        }
+    });
+</script>
+</body>
+</html>
