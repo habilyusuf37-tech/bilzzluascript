@@ -1,4 +1,4 @@
--- ULTIMATE AUTOFARM HUB + NAMA DI ATAS KEPALA = "hide name by miyoshi"
+-- MIYOSHI AUTOFARM v9.0 - Auto Follow Waypoint + Hold E 5s + Teleport 6s
 
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -7,8 +7,8 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
--- WAYPOINT (ganti sesuai game)
-local Locations = {
+-- Koordinat manual (cadangan kalau tidak ada marker)
+local ManualLocations = {
     Vector3.new(2879, 4, -863),
     Vector3.new(-5, 4, 25),
     Vector3.new(3141, 5, -111)
@@ -18,19 +18,38 @@ local autofarm = false
 local flying = false
 local walkSpeed = 16
 
--- GANTI NAMA JADI "hide name by miyoshi" (tetap kelihatan, cuma textnya diganti)
+-- CARI WAYPOINT MARKER OTOMATIS (bisa namanya "Waypoint", "Marker", "Path", dll)
+local function findNextWaypoint()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Part") or obj:IsA("MeshPart") or obj:IsA("Model") then
+            local name = obj.Name:lower()
+            if name:find("way") or name:find("mark") or name:find("point") or name:find("path") or name:find("target") then
+                if obj:IsA("BasePart") then
+                    return obj.Position + Vector3.new(0, 5, 0)
+                elseif obj:FindFirstChild("HumanoidRootPart") then
+                    return obj.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
+                elseif obj:FindFirstChildWhichIsA("BasePart") then
+                    return obj:FindFirstChildWhichIsA("BasePart").Position + Vector3.new(0, 5, 0)
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- NAMA JADI "hide name by miyoshi"
 local function setMiyoshiName()
     if character and character:FindFirstChild("Head") then
-        for _, v in pairs(character.Head:GetChildren()) do
+        for _, v in character.Head:GetChildren() do
             if v:IsA("BillboardGui") then
-                for _, lbl in pairs(v:GetDescendants()) do
+                for _, lbl in v:GetDescendants() do
                     if lbl:IsA("TextLabel") then
                         lbl.Text = "hide name by miyoshi"
-                        lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        lbl.TextColor3 = Color3.fromRGB(255,255,255)
                         lbl.TextStrokeTransparency = 0
-                        lbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                        lbl.TextStrokeColor3 = Color3.new(0,0,0)
                         lbl.Font = Enum.Font.GothamBold
-                        lbl.TextSize = 22
+                        lbl.TextSize = 20
                     end
                 end
             end
@@ -38,39 +57,31 @@ local function setMiyoshiName()
     end
 end
 
--- Auto jalan tiap respawn
 player.CharacterAdded:Connect(function(char)
     character = char
     task.wait(2)
     setMiyoshiName()
 end)
 
--- 2. GET MONEY
-local moneyValue = 0
+-- GET MONEY
 local function getMoney()
     if player:FindFirstChild("leaderstats") then
-        for _, stat in pairs(player.leaderstats:GetChildren()) do
-            if stat:IsA("IntValue") or stat:IsA("NumberValue") then
-                if string.lower(stat.Name):find("money") or string.lower(stat.Name):find("cash") or string.lower(stat.Name):find("coin") then
-                    return stat.Value
-                end
+        for _, v in player.leaderstats:GetChildren() do
+            if (v:IsA("IntValue") or v:IsA("NumberValue")) and (string.find(v.Name:lower(), "money") or string.find(v.Name:lower(), "cash") or string.find(v.Name:lower(), "coin")) then
+                return v.Value
             end
         end
     end
-    return player:FindFirstChild("Data") and player.Data:FindFirstChild("Money") and player.Data.Money.Value or 0
+    return 0
 end
 
--- 3. FLY
+-- FLY
 local function startFly()
     if flying then return end
     flying = true
     local root = character:FindFirstChild("HumanoidRootPart")
-    local bv = Instance.new("BodyVelocity", root)
-    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-    local bg = Instance.new("BodyGyro", root)
-    bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
-    bg.P = 9e4
-
+    local bv = Instance.new("BodyVelocity", root); bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    local bg = Instance.new("BodyGyro", root); bg.MaxTorque = Vector3.new(9e9,9e9,9e9); bg.P = 9e4
     spawn(function()
         while flying and root and root.Parent do
             local cam = workspace.CurrentCamera
@@ -90,190 +101,186 @@ local function startFly()
 end
 local function stopFly() flying = false end
 
--- 4. WALK SPEED
-local function setWalkSpeed(speed)
+-- WALK SPEED
+local function setWalkSpeed(s)
     if character and character:FindFirstChild("Humanoid") then
-        character.Humanoid.WalkSpeed = speed
-        walkSpeed = speed
+        character.Humanoid.WalkSpeed = s
+        walkSpeed = s
     end
 end
 
--- AUTOFARM
-local function teleportTo(pos)
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root then root.CFrame = CFrame.new(pos + Vector3.new(0,5,0)) end
-end
-
-local function holdE()
+-- HOLD E 5 DETIK
+local function holdE5()
     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(7)
+    task.wait(5)
     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
 end
 
-local function destroyWaypointMarker()
-    for _, v in workspace:GetDescendants() do
-        if (v:IsA("BillboardGui") or v:IsA("SurfaceGui")) and (string.find(string.lower(v.Name), "way") or string.find(string.lower(v.Name), "mark")) then
-            v:Destroy()
-        end
+-- TELEPORT KE POSISI
+local function teleportTo(pos)
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = CFrame.new(pos)
     end
 end
 
+-- AUTOFARM - Prioritas: Ikuti marker → kalau nggak ada, pakai koordinat manual
 local function startAutoFarm()
     if autofarm then return end
     autofarm = true
     task.spawn(function()
-        local i = 1
+        local manualIndex = 1
         while autofarm and character and character:FindFirstChild("HumanoidRootPart") do
-            teleportTo(Locations[i])
-            task.wait(0.8)
-            holdE()
-            destroyWaypointMarker()
-            task.wait(8)
-            i = (i % #Locations) + 1
+            local targetPos = findNextWaypoint()
+
+            -- Kalau ada marker otomatis, pakai itu
+            if targetPos then
+                teleportTo(targetPos)
+                task.wait(0.8)
+                holdE5()           -- Hold E 5 detik
+                task.wait(6)       -- Delay 6 detik
+            else
+                -- Kalau nggak ada marker, pakai koordinat manual
+                local pos = ManualLocations[manualIndex]
+                teleportTo(pos)
+                task.wait(0.8)
+                holdE5()
+                task.wait(6)
+                manualIndex = (manualIndex % #ManualLocations) + 1
+            end
         end
     end)
 end
 local function stopAutoFarm() autofarm = false end
 
 --------------------------------------------------
--- GUI MENU
+-- GUI MENU KECIL & ELEGAN
 --------------------------------------------------
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UltimateHub"
+ScreenGui.Name = "MiyoshiHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game.CoreGui
 
--- Floating Button "B"
 local OpenBtn = Instance.new("TextButton")
-OpenBtn.Size = UDim2.new(0,70,0,70)
-OpenBtn.Position = UDim2.new(1,-90,1,-90)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
+OpenBtn.Size = UDim2.new(0,60,0,60)
+OpenBtn.Position = UDim2.new(1,-80,1,-80)
+OpenBtn.BackgroundColor3 = Color3.new(1,1,1)
 OpenBtn.Text = "B"
-OpenBtn.TextSize = 36
+OpenBtn.TextSize = 34
 OpenBtn.Font = Enum.Font.GothamBlack
 OpenBtn.Visible = false
 OpenBtn.Parent = ScreenGui
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1,0)
 
--- Main Frame
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0,480,0,420)
-Main.Position = UDim2.new(0.5,-240,0.5,-210)
-Main.BackgroundColor3 = Color3.fromRGB(25,25,35)
+Main.Size = UDim2.new(0,400,0,360)
+Main.Position = UDim2.new(0.5,-200,0.5,-180)
+Main.BackgroundColor3 = Color3.fromRGB(20,20,30)
 Main.Parent = ScreenGui
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0,16)
-Instance.new("UIStroke", Main).Color = Color3.fromRGB(0,255,255); Instance.new("UIStroke", Main).Thickness = 4
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
+local stroke = Instance.new("UIStroke", Main); stroke.Color = Color3.fromRGB(0,255,255); stroke.Thickness = 3
 
--- Title
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,0,50)
+Title.Size = UDim2.new(1,0,0,45)
 Title.BackgroundTransparency = 1
-Title.Text = "ULTIMATE AUTOFARM HUB"
+Title.Text = "MIYOSHI AUTOFARM"
 Title.TextColor3 = Color3.fromRGB(0,255,255)
 Title.TextSize = 26
 Title.Font = Enum.Font.GothamBold
 Title.Parent = Main
 
--- Money Display
 local MoneyLabel = Instance.new("TextLabel")
-MoneyLabel.Size = UDim2.new(1,-20,0,40)
-MoneyLabel.Position = UDim2.new(0,10,0,55)
-MoneyLabel.BackgroundTransparency = 0.8
+MoneyLabel.Size = UDim2.new(1,-20,0,35)
+MoneyLabel.Position = UDim2.new(0,10,0,50)
+MoneyLabel.BackgroundTransparency = 0.7
 MoneyLabel.BackgroundColor3 = Color3.new(0,0,0)
 MoneyLabel.Text = "Money: Loading..."
-MoneyLabel.TextColor3 = Color3.fromRGB(0,255,0)
-MoneyLabel.TextSize = 22
+MoneyLabel.TextColor3 = Color3.fromRGB(0,255,100)
+MoneyLabel.TextSize = 20
 MoneyLabel.Font = Enum.Font.GothamBold
 MoneyLabel.Parent = Main
-Instance.new("UICorner", MoneyLabel).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", MoneyLabel).CornerRadius = UDim.new(0,8)
 
 spawn(function()
     while task.wait(1) do
         if Main.Parent then
-            moneyValue = getMoney()
-            MoneyLabel.Text = "Money: "..string.format("%,d", moneyValue).."$"
+            MoneyLabel.Text = "Money: "..string.format("%,d", getMoney()).."$"
         end
     end
 end)
 
--- Buttons
-local yPos = 110
-local function createBtn(text, color, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0,420,0,50)
-    btn.Position = UDim2.new(0.5,-210,0,yPos)
-    btn.BackgroundColor3 = color
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextSize = 22
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = Main
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
-    btn.MouseButton1Click:Connect(callback)
-    yPos = yPos + 60
+local y = 95
+local function btn(text, col, func)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0,360,0,45)
+    b.Position = UDim2.new(0.5,-180,0,y)
+    b.BackgroundColor3 = col
+    b.Text = text
+    b.TextColor3 = Color3.new(1,1,1)
+    b.TextSize = 20
+    b.Font = Enum.Font.GothamBold
+    b.Parent = Main
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+    b.MouseButton1Click:Connect(func)
+    y = y + 52
 end
 
-createBtn("START AUTOFARM", Color3.fromRGB(0,200,0), startAutoFarm)
-createBtn("STOP AUTOFARM", Color3.fromRGB(200,0,0), stopAutoFarm)
-createBtn("TOGGLE FLY", Color3.fromRGB(0,150,255), function() if flying then stopFly() else startFly() end end)
-createBtn("MIYOSHI NAME (ON)", Color3.fromRGB(255,100,0), setMiyoshiName)
+btn("START AUTOFARM", Color3.fromRGB(0,180,0), startAutoFarm)
+btn("STOP AUTOFARM", Color3.fromRGB(180,0,0), stopAutoFarm)
+btn("TOGGLE FLY", Color3.fromRGB(0,140,255), function() if flying then stopFly() else startFly() end end)
+btn("MIYOSHI NAME", Color3.fromRGB(255,80,80), setMiyoshiName)
 
--- WalkSpeed
-local SpeedSlider = Instance.new("TextBox")
-SpeedSlider.Size = UDim2.new(0,420,0,50)
-SpeedSlider.Position = UDim2.new(0.5,-210,0,yPos)
-SpeedSlider.BackgroundColor3 = Color3.fromRGB(50,50,50)
-SpeedSlider.Text = "WalkSpeed: 16"
-SpeedSlider.TextColor3 = Color3.new(1,1,1)
-SpeedSlider.TextSize = 20
-SpeedSlider.Parent = Main
-Instance.new("UICorner", SpeedSlider).CornerRadius = UDim.new(0,12)
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Size = UDim2.new(0,360,0,45)
+SpeedBox.Position = UDim2.new(0.5,-180,0,y)
+SpeedBox.BackgroundColor3 = Color3.fromRGB(50,50,60)
+SpeedBox.Text = "WalkSpeed: 16"
+SpeedBox.TextColor3 = Color3.new(1,1,1)
+SpeedBox.TextSize = 20
+SpeedBox.Parent = Main
+Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0,10)
 
-SpeedSlider.FocusLost:Connect(function(enter)
+SpeedBox.FocusLost:Connect(function(enter)
     if enter then
-        local num = tonumber(SpeedSlider.Text:match("%d+"))
-        if num and num >= 16 and num <= 500 then
-            setWalkSpeed(num)
-            SpeedSlider.Text = "WalkSpeed: "..num
-        else
-            SpeedSlider.Text = "WalkSpeed: "..walkSpeed.." (16-500)"
+        local n = tonumber(SpeedBox.Text:match("%d+"))
+        if n and n >= 16 and n <= 500 then
+            setWalkSpeed(n)
+            SpeedBox.Text = "WalkSpeed: "..n
         end
     end
 end)
 
--- Hide Button
 local HideX = Instance.new("TextButton")
-HideX.Size = UDim2.new(0,45,0,45)
-HideX.Position = UDim2.new(1,-55,0,8)
+HideX.Size = UDim2.new(0,40,0,40)
+HideX.Position = UDim2.new(1,-48,0,8)
 HideX.BackgroundColor3 = Color3.fromRGB(255,50,50)
 HideX.Text = "X"
-HideX.TextSize = 28
+HideX.TextSize = 26
 HideX.Parent = Main
 Instance.new("UICorner", HideX).CornerRadius = UDim.new(1,0)
-HideX.MouseButton1Click:Connect(function()
-    Main.Visible = false
-    OpenBtn.Visible = true
-end)
-
-OpenBtn.MouseButton1Click:Connect(function()
-    Main.Visible = true
-    OpenBtn.Visible = false
-end)
+HideX.MouseButton1Click:Connect(function() Main.Visible = false; OpenBtn.Visible = true end)
+OpenBtn.MouseButton1Click:Connect(function() Main.Visible = true; OpenBtn.Visible = false end)
 
 -- Draggable
-local dragging, dragInput, dragStart, startPos
-Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = i.Position; startPos = Main.Position end end)
-Main.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then dragInput = i end end)
+local dragging = false
+Main.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = i.Position
+        startPos = Main.Position
+    end
+end)
 UserInputService.InputChanged:Connect(function(i)
-    if dragging and i == dragInput then
+    if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = i.Position - dragStart
         Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
+Main.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
--- Jalankan nama Miyoshi saat pertama kali
+-- Jalankan nama Miyoshi
 task.wait(3)
 setMiyoshiName()
 
-print("ULTIMATE HUB + hide name by miyoshi LOADED!")
+print("MIYOSHI AUTOFARM LOADED! Auto follow waypoint + Hold E 5s + Teleport 6s")
