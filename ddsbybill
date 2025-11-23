@@ -1,0 +1,104 @@
+-- GUI Toggle Menu
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local ToggleButton = Instance.new("TextButton", ScreenGui)
+
+ToggleButton.Size = UDim2.new(0, 150, 0, 50)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.1, 0)
+ToggleButton.Text = "OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah (OFF)
+
+local autoFarm = false
+
+ToggleButton.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    if autoFarm then
+        ToggleButton.Text = "ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Hijau
+    else
+        ToggleButton.Text = "OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+    end
+end)
+
+-- List koordinat waypoint (1-6)
+local waypoints = {
+    Vector3.new(-5111, 5, -3760),
+    Vector3.new(-6795, 3, -444),
+    Vector3.new(-17053, 104, 6567),
+    Vector3.new(-6741, 3, 2975),
+    Vector3.new(-8777, 3, 644),
+    Vector3.new(-8382, 2, -3822)
+}
+
+-- Fungsi TELEPORT
+local function teleportTo(position)
+    local player = game.Players.LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character:MoveTo(position)
+    end
+end
+
+-- FUNGS AUTO EQUIP ITEM (ambil atau pegang item)
+local function autoEquip()
+    local player = game.Players.LocalPlayer
+    local backpack = player:WaitForChild("Backpack")
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            tool.Parent = player.Character
+            break
+        end
+    end
+end
+
+-- FUNGSI AUTO TEKAN “E” (ProximityPrompt & KeyPress)
+local function autoPressE()
+    -- ProximityPrompt (objek yang ada tombol E)
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            pcall(function()
+                fireproximityprompt(obj)
+            end)
+        end
+    end
+
+    -- Simulasi tekan KeyCode E
+    game:GetService("VirtualInputManager"):SendKeyEvent(true, "E", false, game)
+    task.wait(0.2)
+    game:GetService("VirtualInputManager"):SendKeyEvent(false, "E", false, game)
+end
+
+-- Tekan E untuk teleport awal
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gp)
+    if input.KeyCode == Enum.KeyCode.E then
+        teleportTo(waypoints[1])
+    end
+end)
+
+-- AUTO LOOP / AUTO FARM
+task.spawn(function()
+    while true do
+        if autoFarm then
+            for _, coord in ipairs(waypoints) do
+                
+                -- TELEPORT sesuai waypoint
+                teleportTo(coord)
+                task.wait(1.5)
+
+                -- AUTO KLIK E
+                autoPressE()
+
+                -- AUTO EQUIP ITEM
+                autoEquip()
+
+                -- DELAY 10 detik (countdown)
+                for i = 10, 1, -1 do
+                    if not autoFarm then break end
+                    print("Teleport dalam: "..i.." detik")
+                    task.wait(1)
+                end
+            end
+        end
+        task.wait(1)
+    end
+end)
