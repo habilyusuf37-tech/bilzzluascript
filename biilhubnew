@@ -9,18 +9,21 @@ screenGui.Name = "BillHubUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Tombol Bulat B
+-- Tombol Bulat B (Launcher)
 local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 60, 0, 60)
-toggleButton.Position = UDim2.new(0, 20, 0.7, -30)
+toggleButton.Size = UDim2.new(0, 70, 0, 70)
+toggleButton.Position = UDim2.new(0, 30, 0.5, -35)
+toggleButton.AnchorPoint = Vector2.new(0, 0.5)
 toggleButton.Text = "B"
-toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Putih supaya jelas
+toggleButton.TextColor3 = Color3.fromRGB(0, 0, 0) -- Hitam (kontras)
 toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 26
+toggleButton.TextSize = 32
 toggleButton.BorderSizePixel = 0
 toggleButton.AutoButtonColor = true
 toggleButton.Draggable = true
+toggleButton.Active = true
+toggleButton.ZIndex = 10 -- Supaya selalu di atas UI lain
 toggleButton.Parent = screenGui
 
 -- Menu Utama
