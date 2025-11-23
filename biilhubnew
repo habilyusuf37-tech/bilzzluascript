@@ -1,218 +1,194 @@
--- 🔹 Services
+--====================================================--
+--  SYSTEM MENU + TOGGLE BUTTON + AUTO FARM OFFICE + AUTO EARN MONEY
+--  Untuk Game Buatan Kamu Sendiri
+--====================================================--
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui")
+local PlayerGui = player:WaitForChild("PlayerGui")
 
-------------------------------------------------
--- SCREEN GUI UTAMA
-------------------------------------------------
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BillhubGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = gui
+local screenGui = Instance.new("ScreenGui", PlayerGui)
+screenGui.Name = "MyGameHub"
 
--- 🔹 SAVE & LOAD UI POSITIONS
-local function savePosition(button, key)
-    _G[key] = {
-        X = button.Position.X.Scale,
-        Y = button.Position.Y.Scale
-    }
+
+---
+
+-- 1. TOMBOL BULAT UNTUK BUKA / TUTUP MENU
+
+local toggle = Instance.new("ImageButton", screenGui)
+toggle.Size = UDim2.new(0, 70, 0, 70)
+toggle.Position = UDim2.new(0.05, 0, 0.5, 0)
+toggle.BackgroundTransparency = 1
+toggle.Image = "rbxassetid://3926305904"
+toggle.ImageRectOffset = Vector2.new(4, 4)
+toggle.ImageRectSize = Vector2.new(36, 36)
+
+
+---
+
+-- 2. FRAME MENU
+
+local menu = Instance.new("Frame", screenGui)
+menu.Size = UDim2.new(0, 400, 0, 350)
+menu.Position = UDim2.new(0.3, 0, 0.25, 0)
+menu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+menu.Visible = false
+
+local UIStroke = Instance.new("UIStroke", menu)
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Thickness = 2
+
+local UICorner = Instance.new("UICorner", menu)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+toggle.MouseButton1Click:Connect(function()
+menu.Visible = not menu.Visible
+end)
+
+
+---
+
+-- 3. JUDUL MENU
+
+local title = Instance.new("TextLabel", menu)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "My Game Hub"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 28
+
+
+---
+
+-- 4. TOMBOL AUTO FARM OFFICE
+
+local autoFarmButton = Instance.new("TextButton", menu)
+autoFarmButton.Size = UDim2.new(0.8, 0, 0, 50)
+autoFarmButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+autoFarmButton.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
+autoFarmButton.Text = "Auto Farm Office: OFF"
+autoFarmButton.TextColor3 = Color3.new(1,1,1)
+autoFarmButton.Font = Enum.Font.Gotham
+autoFarmButton.TextSize = 22
+
+local UICorner2 = Instance.new("UICorner", autoFarmButton)
+local autoFarmEnabled = false
+
+autoFarmButton.MouseButton1Click:Connect(function()
+autoFarmEnabled = not autoFarmEnabled
+
+if autoFarmEnabled then  
+	autoFarmButton.Text = "Auto Farm Office: ON"  
+	autoFarmButton.BackgroundColor3 = Color3.fromRGB(40, 170, 40)  
+else  
+	autoFarmButton.Text = "Auto Farm Office: OFF"  
+	autoFarmButton.BackgroundColor3 = Color3.fromRGB(170, 40, 40)  
 end
 
-local function loadPosition(button, key)
-    if _G[key] then
-        button.Position = UDim2.new(_G[key].X, 0, _G[key].Y, 0)
-    end
+end)
+
+
+---
+
+-- 5. TOMBOL AUTO EARN MONEY (FITUR BARU)
+
+local autoMoneyButton = Instance.new("TextButton", menu)
+autoMoneyButton.Size = UDim2.new(0.8, 0, 0, 50)
+autoMoneyButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+autoMoneyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 170)
+autoMoneyButton.Text = "Auto Earn Money: OFF"
+autoMoneyButton.TextColor3 = Color3.new(1,1,1)
+autoMoneyButton.Font = Enum.Font.Gotham
+autoMoneyButton.TextSize = 22
+
+local UICorner3 = Instance.new("UICorner", autoMoneyButton)
+local autoMoneyEnabled = false
+
+autoMoneyButton.MouseButton1Click:Connect(function()
+autoMoneyEnabled = not autoMoneyEnabled
+
+if autoMoneyEnabled then  
+	autoMoneyButton.Text = "Auto Earn Money: ON"  
+	autoMoneyButton.BackgroundColor3 = Color3.fromRGB(40, 170, 40)  
+else  
+	autoMoneyButton.Text = "Auto Earn Money: OFF"  
+	autoMoneyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 170)  
 end
 
-------------------------------------------------
--- TOMBOL BULAT B (Launcher)
-------------------------------------------------
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 70, 0, 70)
-toggleButton.Position = UDim2.new(0, 30, 0.5, -35)
-toggleButton.AnchorPoint = Vector2.new(0, 0.5)
-toggleButton.Text = "B"
-toggleButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
-toggleButton.TextColor3 = Color3.fromRGB(0,0,0)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.TextSize = 32
-toggleButton.BorderSizePixel = 0
-toggleButton.Draggable = true
-toggleButton.Active = true
-toggleButton.ZIndex = 10
-toggleButton.Parent = screenGui
-
--- Load & Save Posisi Tombol B
-loadPosition(toggleButton, "ToggleButtonPos")
-toggleButton.Changed:Connect(function()
-    savePosition(toggleButton, "ToggleButtonPos")
 end)
 
-------------------------------------------------
--- FRAME MENU UTAMA
-------------------------------------------------
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 360)
-mainFrame.Position = UDim2.new(0, 120, 0.5, -180)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
 
--- Load & Save Posisi Frame
-loadPosition(mainFrame, "MainFramePos")
-mainFrame.Changed:Connect(function()
-    savePosition(mainFrame, "MainFramePos")
-end)
+---
 
-------------------------------------------------
--- TITLE BAR
-------------------------------------------------
-local titleBar = Instance.new("TextLabel")
-titleBar.Size = UDim2.new(1,0,0,40)
-titleBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
-titleBar.Text = "Premium   |   billhub"
-titleBar.TextColor3 = Color3.fromRGB(255,255,255)
-titleBar.Font = Enum.Font.GothamBold
-titleBar.TextSize = 18
-titleBar.Parent = mainFrame
+-- 6. SISTEM AUTO FARM OFFICE
 
-------------------------------------------------
--- TOMBOL START
-------------------------------------------------
-local farmButton = Instance.new("TextButton")
-farmButton.Size = UDim2.new(0,280,0,50)
-farmButton.Position = UDim2.new(0,20,0,70)
-farmButton.Text = "Start Auto Farm Kurir"
-farmButton.BackgroundColor3 = Color3.fromRGB(40,120,40)
-farmButton.TextColor3 = Color3.fromRGB(255,255,255)
-farmButton.Font = Enum.Font.GothamBold
-farmButton.TextSize = 18
-farmButton.Parent = mainFrame
+task.spawn(function()
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+local waitTime = 1
 
-------------------------------------------------
--- DELAY BOX
-------------------------------------------------
-local delayBox = Instance.new("TextBox")
-delayBox.Size = UDim2.new(0,120,0,40)
-delayBox.Position = UDim2.new(0,20,0,130)
-delayBox.Text = "18"
-delayBox.BackgroundColor3 = Color3.fromRGB(45,45,45)
-delayBox.TextColor3 = Color3.fromRGB(255,255,255)
-delayBox.Font = Enum.Font.Gotham
-delayBox.TextSize = 16
-delayBox.Parent = mainFrame
+while true do  
+	task.wait(waitTime)  
 
-------------------------------------------------
--- PROGRESS LABEL
-------------------------------------------------
-local progressLabel = Instance.new("TextLabel")
-progressLabel.Size = UDim2.new(0,280,0,40)
-progressLabel.Position = UDim2.new(0,20,0,180)
-progressLabel.Text = "Progress: -"
-progressLabel.BackgroundTransparency = 1
-progressLabel.TextColor3 = Color3.fromRGB(255,255,255)
-progressLabel.Font = Enum.Font.Gotham
-progressLabel.TextSize = 16
-progressLabel.Parent = mainFrame
+	if autoFarmEnabled then  
+		local buttons = {}  
 
-------------------------------------------------
--- NOTIFIKASI TELEPORT
-------------------------------------------------
-local notifLabel = Instance.new("TextLabel")
-notifLabel.Size = UDim2.new(0,250,0,35)
-notifLabel.Position = UDim2.new(1,-260,0,20)
-notifLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
-notifLabel.Text = ""
-notifLabel.TextColor3 = Color3.fromRGB(255,255,255)
-notifLabel.Font = Enum.Font.GothamBold
-notifLabel.TextSize = 14
-notifLabel.Visible = false
-notifLabel.Parent = screenGui
+		for _, obj in pairs(game:GetDescendants()) do  
+			if obj:IsA("TextButton") then  
+				table.insert(buttons, obj)  
+			end  
 
-local function showNotification(text)
-    notifLabel.Text = text
-    notifLabel.Visible = true
-    task.delay(2.5, function()
-        notifLabel.Visible = false
-    end)
+			if obj:IsA("Part") or obj:IsA("MeshPart") then  
+				if string.find(obj.Name:lower(), "answer")   
+				or string.find(obj.Name:lower(), "jawaban") then  
+					table.insert(buttons, obj)  
+				end  
+			end  
+		end  
+
+		if #buttons > 0 then  
+			local chosen = buttons[math.random(1, #buttons)]  
+
+			if chosen:IsA("TextButton") then  
+				pcall(function()  
+					chosen:Activate()  
+					chosen.MouseButton1Click:Fire()  
+				end)  
+			else  
+				pcall(function()  
+					root.CFrame = chosen.CFrame + Vector3.new(0, 2, 0)  
+				end)  
+			end  
+		end  
+	end  
 end
 
-------------------------------------------------
--- MONEY TRACKER (Real-time Profit)
-------------------------------------------------
-local moneyLabel = Instance.new("TextLabel")
-moneyLabel.Size = UDim2.new(0,250,0,40)
-moneyLabel.Position = UDim2.new(1,-260,0,10)
-moneyLabel.BackgroundColor3 = Color3.fromRGB(10,10,10)
-moneyLabel.TextColor3 = Color3.fromRGB(0,255,0)
-moneyLabel.Font = Enum.Font.GothamBold
-moneyLabel.TextSize = 16
-moneyLabel.Parent = screenGui
-
-local initialMoney = player.leaderstats.Money.Value
-player.leaderstats.Money.Changed:Connect(function(newValue)
-    moneyLabel.Text = "💰 Uang: " .. newValue .. " | Profit: +" .. (newValue - initialMoney)
 end)
 
-------------------------------------------------
--- WAYPOINT KURIR (ASLI SESUAI PERINTAH)
-------------------------------------------------
-local waypoints = {
-    Vector3.new(-5111, 5, -3760),   -- Ambil Job
-    Vector3.new(-6795, 3, -444),
-    Vector3.new(-17053, 104, 6567),
-    Vector3.new(-6741, 3, 2975),
-    Vector3.new(-8777, 3, 644),
-    Vector3.new(-8382, 2, -3822),
-}
 
-------------------------------------------------
--- AUTO FARM SISTEM
-------------------------------------------------
-local farming = false
+---
 
-farmButton.MouseButton1Click:Connect(function()
-    farming = not farming
-    farmButton.Text = farming and "Stop Auto Farm" or "Start Auto Farm Kurir"
+-- 7. SISTEM AUTO EARN MONEY
 
-    if farming then
-        task.spawn(function()
-            while farming do
-                local delayTime = tonumber(delayBox.Text) or 18
+task.spawn(function()
+while true do
+task.wait(2) -- interval memberi uang
 
-                -- Teleport ke Job
-                progressLabel.Text = "Progress: Mengambil Job..."
-                showNotification("Teleport ke Job")
-                player.Character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(waypoints[1])
-                task.wait(2)
+if autoMoneyEnabled then  
+		  
+		-- ⚠ GANTI NAMA REMOTEEVENT SESUAI GAME KAMU  
+		-- Contoh:  
+		-- game.ReplicatedStorage.GiveMoney:FireServer(50)  
 
-                -- FARMING LOOP
-                for i = 2, #waypoints do
-                    if not farming then break end
-                    progressLabel.Text = "Tujuan ke-" .. (i-1)
-                    showNotification("Teleport ke lokasi " .. (i-1))
-                    player.Character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(waypoints[i])
-                    
-                    -- Klik F otomatis
-                    task.wait(1)
-                    keypress(0x46)
-                    task.wait(0.5)
-                    keyrelease(0x46)
+		pcall(function()  
+			local remote = game.ReplicatedStorage:FindFirstChild("RemoteEvent")  
+			if remote then  
+				remote:FireServer(75.00) -- jumlah uang yang diberikan  
+			end  
+		end)  
+	end  
+end
 
-                    task.wait(delayTime)
-                end
-            end
-        end)
-    end
-end)
-
-------------------------------------------------
--- TOGGLE UI DARI TOMBOL B
-------------------------------------------------
-toggleButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
 end)
