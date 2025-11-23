@@ -1,4 +1,4 @@
--- PREMIUM BY MIYOSHI - CLEAN 0° + RADIUS 1500 (FINAL CLEAN VERSION)
+-- PREMIUM BY MIYOSHI - CLEAN 0° + RADIUS 3000 (FINAL CLEAN VERSION)
 
 local CorrectKey = "MIYOSHI2025"
 
@@ -143,19 +143,19 @@ RedeemBtn.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- AUTOFARM LOOP - RADIUS 1500 + FIX TELEPORT
+        -- AUTOFARM LOOP - RADIUS 3000 + FIX TELEPORT
         spawn(function()
             while task.wait(0.8) do
                 if AutoFarm and Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = Players.LocalPlayer.Character.HumanoidRootPart
                     local target = Coords[idx]
 
-                    -- Waypoint setelah 7 delivery, radius 1500
+                    -- Waypoint setelah 7 delivery, radius 3000
                     if deliveries >= 7 then
                         for _, obj in Workspace:GetDescendants() do
                             if obj:IsA("BasePart") and 
                                (obj.Name:lower():find("delivery") or obj.Name:lower():find("waypoint") or obj.Name:lower():find("drop")) and
-                               (hrp.Position - obj.Position).Magnitude <= 1500 then
+                               (hrp.Position - obj.Position).Magnitude <= 3000 then
                                 target = obj.Position
                                 break
                             end
