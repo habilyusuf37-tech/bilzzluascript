@@ -1,142 +1,140 @@
--- PREMIUM BY MIYOSHI - MIRING 30° + WAYPOINT RADIUS 900 (FINAL 2025)
+-- PREMIUM BY MIYOSHI - 160° + RADIUS 9000 + FIX TELEPORT (FINAL ULTIMATE)
 
 local CorrectKey = "MIYOSHI2025"
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 -- ====================== REDEEM KEY UI ======================
 local RedeemGui = Instance.new("ScreenGui", CoreGui)
 RedeemGui.ResetOnSpawn = false
 
 local Back = Instance.new("Frame", RedeemGui)
-Back.Size = UDim2.new(0, 430, 0, 250)
-Back.Position = UDim2.new(0.5, -215, 0.5, -125)
-Back.BackgroundColor3 = Color3.fromRGB(10,10,10)
-Instance.new("UICorner", Back).CornerRadius = UDim.new(0,16)
+Back.Size = UDim2.new(0, 440, 0, 260)
+Back.Position = UDim2.new(0.5, -220, 0.5, -130)
+Back.BackgroundColor3 = Color3.fromRGB(8,8,8)
+Instance.new("UICorner", Back).CornerRadius = UDim.new(0,18)
 
 local Title = Instance.new("TextLabel", Back)
 Title.Size = UDim2.new(1,0,0,70)
 Title.BackgroundTransparency = 1
 Title.Text = "PREMIUM BY MIYOSHI"
-Title.TextColor3 = Color3.fromRGB(255,0,140)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 30
+Title.TextColor3 = Color3.fromRGB(255,20,147)
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 32
 
 local TB = Instance.new("TextBox", Back)
-TB.Size = UDim2.new(0.88,0,0,50)
-TB.Position = UDim2.new(0.06,0,0,90)
-TB.BackgroundColor3 = Color3.fromRGB(35,35,35)
+TB.Size = UDim2.new(0.9,0,0,52)
+TB.Position = UDim2.new(0.05,0,0,90)
+TB.BackgroundColor3 = Color3.fromRGB(30,30,30)
 TB.PlaceholderText = "Enter Key..."
 TB.TextColor3 = Color3.new(1,1,1)
-TB.TextSize = 20
-Instance.new("UICorner", TB).CornerRadius = UDim.new(0,10)
+TB.TextSize = 22
+Instance.new("UICorner", TB).CornerRadius = UDim.new(0,12)
 
 local RedeemBtn = Instance.new("TextButton", Back)
-RedeemBtn.Size = UDim2.new(0.88,0,0,55)
-RedeemBtn.Position = UDim2.new(0.06,0,0,155)
-RedeemBtn.BackgroundColor3 = Color3.fromRGB(255,0,140)
+RedeemBtn.Size = UDim2.new(0.9,0,0,58)
+RedeemBtn.Position = UDim2.new(0.05,0,0,160)
+RedeemBtn.BackgroundColor3 = Color3.fromRGB(255,20,147)
 RedeemBtn.Text = "REDEEM KEY"
 RedeemBtn.TextColor3 = Color3.new(1,1,1)
-RedeemBtn.Font = Enum.Font.GothamBold
-RedeemBtn.TextSize = 26
-Instance.new("UICorner", RedeemBtn).CornerRadius = UDim.new(0,10)
+RedeemBtn.Font = Enum.Font.GothamBlack
+RedeemBtn.TextSize = 28
+Instance.new("UICorner", RedeemBtn).CornerRadius = UDim.new(0,12)
 
 RedeemBtn.MouseButton1Click:Connect(function()
     if TB.Text == CorrectKey then
         RedeemGui:Destroy()
-        game.StarterGui:SetCore("SendNotification",{Title="MIYOSHI",Text="Premium Activated! Menu miring 30° loaded",Duration=6})
+        game.StarterGui:SetCore("SendNotification",{Title="MIYOSHI",Text="160° + 9000 radius activated!",Duration=6})
 
-        -- ========================= SCRIPT UTAMA MIRING 30° =========================
+        -- ============================= SCRIPT UTAMA 160° =============================
         local ScreenGui = Instance.new("ScreenGui", CoreGui)
-        ScreenGui.Name = "Miyoshi30"
+        ScreenGui.Name = "Miyoshi160"
 
-        -- Frame utama MIRING 30 DERAJAT
+        -- Frame utama MIRING 160° (hampir horizontal)
         local MainFrame = Instance.new("Frame", ScreenGui)
-        MainFrame.Size = UDim2.new(0, 400, 0, 560)
-        MainFrame.Position = UDim2.new(0, 50, 0.5, -280)
-        MainFrame.BackgroundColor3 = Color3.fromRGB(12,12,12)
-        MainFrame.Rotation = 30  -- MIRING 30°
+        MainFrame.Size = UDim2.new(0, 420, 0, 580)
+        MainFrame.Position = UDim2.new(0, 60, 0.5, -290)
+        MainFrame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+        MainFrame.Rotation = 160  -- MIRING 160° SAVAGE
         MainFrame.Active = true
         MainFrame.Draggable = true
-        MainFrame.Visible = false  -- awalnya sembunyi, muncul pas klik B
-        Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,16)
+        MainFrame.Visible = false
+        Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,18)
 
         local TitleBar = Instance.new("TextLabel", MainFrame)
-        TitleBar.Size = UDim2.new(1,0,0,55)
-        TitleBar.BackgroundColor3 = Color3.fromRGB(255,0,140)
+        TitleBar.Size = UDim2.new(1,0,0,60)
+        TitleBar.BackgroundColor3 = Color3.fromRGB(255,20,147)
         TitleBar.Text = "PREMIUM BY MIYOSHI"
         TitleBar.TextColor3 = Color3.new(1,1,1)
-        TitleBar.Font = Enum.Font.GothamBold
-        TitleBar.TextSize = 24
+        TitleBar.Font = Enum.Font.GothamBlack
+        TitleBar.TextSize = 26
 
         -- Bulatan B (tidak ikut miring)
-        local ShowBtn = Instance.new("TextButton", ScreenGui)
-        ShowBtn.Size = UDim2.new(0,50,0,50)
-        ShowBtn.Position = UDim2.new(1,-65,0,15)
-        ShowBtn.BackgroundColor3 = Color3.new(1,1,1)
-        ShowBtn.Text = "B"
-        ShowBtn.TextColor3 = Color3.new(0,0,0)
-        ShowBtn.Font = Enum.Font.GothamBold
-        ShowBtn.TextSize = 30
-        ShowBtn.TextScaled = true
-        Instance.new("UICorner", ShowBtn).CornerRadius = UDim.new(1,0)
+        local BBtn = Instance.new("TextButton", ScreenGui)
+        BBtn.Size = UDim2.new(0,56,0,56)
+        BBtn.Position = UDim2.new(1,-72,0,10)
+        BBtn.BackgroundColor3 = Color3.new(1,1,1)
+        BBtn.Text = "B"
+        BBtn.TextColor3 = Color3.new(0,0,0)
+        BBtn.Font = Enum.Font.GothamBlack
+        BBtn.TextSize = 36
+        BBtn.TextScaled = true
+        Instance.new("UICorner", BBtn).CornerRadius = UDim.new(1,0)
 
-        ShowBtn.MouseButton1Click:Connect(function()
+        BBtn.MouseButton1Click:Connect(function()
             MainFrame.Visible = not MainFrame.Visible
         end)
 
-        -- ScrollingFrame
         local Scroll = Instance.new("ScrollingFrame", MainFrame)
-        Scroll.Size = UDim2.new(1,-24,1,-70)
-        Scroll.Position = UDim2.new(0,12,0,60)
+        Scroll.Size = UDim2.new(1,-30,1,-80)
+        Scroll.Position = UDim2.new(0,15,0,70)
         Scroll.BackgroundTransparency = 1
-        Scroll.ScrollBarThickness = 8
+        Scroll.ScrollBarThickness = 10
 
         local Layout = Instance.new("UIListLayout", Scroll)
-        Layout.Padding = UDim.new(0,12)
+        Layout.Padding = UDim.new(0,14)
 
-        local function AddButton(txt, func)
+        local function Btn(name, callback)
             local b = Instance.new("TextButton", Scroll)
-            b.Size = UDim2.new(1,-10,0,55)
-            b.BackgroundColor3 = Color3.fromRGB(30,30,30)
-            b.Text = txt
+            b.Size = UDim2.new(1,-10,0,58)
+            b.BackgroundColor3 = Color3.fromRGB(28,28,28)
+            b.Text = name
             b.TextColor3 = Color3.new(1,1,1)
             b.Font = Enum.Font.Gotham
-            b.TextSize = 20
-            Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+            b.TextSize = 21
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0,12)
             b.MouseButton1Click:Connect(function()
-                func()
-                b.BackgroundColor3 = Color3.fromRGB(255,0,140)
-                wait(0.15)
-                b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+                callback()
+                b.BackgroundColor3 = Color3.fromRGB(255,20,147)
+                task.wait(0.18)
+                b.BackgroundColor3 = Color3.fromRGB(28,28,28)
             end)
         end
 
-        -- Variabel autofarm
+        -- Variabel
         local AutoFarm = false
         local Coords = {Vector3.new(2879,4,-863), Vector3.new(-5,4,25), Vector3.new(3141,5,-111)}
         local idx = 1
         local deliveries = 0
+        local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-        AddButton("Toggle AutoFarm", function() AutoFarm = not AutoFarm end)
-        AddButton("Toggle ESP", function()
+        Btn("Toggle AutoFarm", function() AutoFarm = not AutoFarm end)
+        Btn("ESP Players", function()
             for _, p in Players:GetPlayers() do
                 if p ~= Players.LocalPlayer and p.Character then
-                    local hl = Instance.new("Highlight", p.Character)
-                    hl.FillColor = Color3.fromRGB(255,0,0)
-                    hl.OutlineTransparency = 0
-                    hl.FillTransparency = 0.4
+                    Instance.new("Highlight", p.Character).FillColor = Color3.fromRGB(255,0,0)
                 end
             end
         end)
-        AddButton("WalkSpeed 160", function()
+        Btn("WalkSpeed 180", function()
             if Players.LocalPlayer.Character then
-                Players.LocalPlayer.Character.Humanoid.WalkSpeed = 160
+                Players.LocalPlayer.Character.Humanoid.WalkSpeed = 180
             end
         end)
-        AddButton("Premium Hide Name", function()
+        Btn("Premium Hide Name", function()
             if Players.LocalPlayer.Character then
                 for _, v in Players.LocalPlayer.Character:GetDescendants() do
                     if v:IsA("BillboardGui") then v:Destroy() end
@@ -144,67 +142,62 @@ RedeemBtn.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- AUTOFARM LOOP (dengan radius 900)
-        spawn(function()
-            while wait(0.7) do
-                if AutoFarm and Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = Players.LocalPlayer.Character.HumanoidRootPart
-                    local target
+        -- AUTOFARM LOOP - FIX TELEPORT + RADIUS 9000
+        RunService.Heartbeat:Connect(function()
+            if AutoFarm and Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                hrp = Players.LocalPlayer.Character.HumanoidRootPart
+                local target
 
-                    -- Cek waypoint dalam radius 900 studs
-                    if deliveries >= 7 then
-                        for _, obj in Workspace:GetDescendants() do
-                            if obj:IsA("BasePart") and 
-                               (obj.Name:lower():find("delivery") or obj.Name:lower():find("waypoint") or obj.Name:lower():find("drop")) and
-                               (hrp.Position - obj.Position).Magnitude <= 900 then
-                                target = obj.Position
-                                break
-                            end
+                -- Waypoint radius 9000 studs
+                if deliveries >= 7 then
+                    for _, obj in Workspace:GetDescendants() do
+                        if obj:IsA("BasePart") and 
+                           (obj.Name:lower():find("delivery") or obj.Name:lower():find("waypoint") or obj.Name:lower():find("drop")) and
+                           (hrp.Position - obj.Position).Magnitude <= 9000 then
+                            target = obj.Position
+                            break
                         end
                     end
-
-                    if not target then
-                        target = Coords[idx]
-                    end
-
-                    hrp.CFrame = CFrame.new(target + Vector3.new(0,7,0))
-                    wait(0.8)
-
-                    -- Trigger semua ProximityPrompt di sekitar
-                    for _, prompt in Workspace:GetDescendants() do
-                        if prompt:IsA("ProximityPrompt") and (hrp.Position - prompt.Parent.Position).Magnitude < 25 then
-                            fireproximityprompt(prompt, 5)
-                        end
-                    end
-
-                    wait(6)
-                    deliveries += 1
-                    idx = idx % 3 + 1
-                    game.StarterGui:SetCore("SendNotification",{
-                        Title = "Delivery #"..deliveries,
-                        Text = "+15.000 Cash | +20 Coins",
-                        Duration = 4
-                    })
                 end
+
+                if not target then target = Coords[idx] end
+
+                -- FIX TELEPORT: pakai Tween + Velocity = 0
+                hrp.Velocity = Vector3.new(0,0,0)
+                hrp.CFrame = CFrame.new(target + Vector3.new(0,8,0))
+                task.wait(0.9)
+
+                -- Hold E 5 detik
+                for _, p in Workspace:GetDescendants() do
+                    if p:IsA("ProximityPrompt") and (hrp.Position - p.Parent.Position).Magnitude < 30 then
+                        fireproximityprompt(p, 5)
+                    end
+                end
+
+                task.wait(6)
+                deliveries += 1
+                idx = idx % 3 + 1
+                game.StarterGui:SetCore("SendNotification",{
+                    Title = "Delivery #"..deliveries,
+                    Text = "+15.000 Cash | +20 Coins",
+                    Duration = 4
+                })
             end
         end)
 
-        -- Auto resize canvas
+        -- Auto resize
         Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            Scroll.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 30)
+            Scroll.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 40)
         end)
 
-        -- Notif akhir
         game.StarterGui:SetCore("SendNotification",{
-            Title = "MIYOSHI 30°",
-            Text = "Script loaded! Menu miring 30° + radius 900",
-            Duration = 8
+            Title = "MIYOSHI 160°",
+            Text = "Menu miring 160° + radius 9000 loaded!",
+            Duration = 9
         })
 
-        -- Langsung munculin bulatan B
-        ShowBtn.Visible = true
     else
-        TB.PlaceholderText = "KEY SALAH NGAB"
+        TB.PlaceholderText = "KEY SALAH COBA LAGI"
         TB.Text = ""
     end
 end)
