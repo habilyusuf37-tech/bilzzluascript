@@ -1,0 +1,209 @@
+-- =================================================
+-- CDID AUTOFARM TELEPORT ONLY - SUPER UNDETECTED
+-- Koordinat 100% sesuai request terbaru kamu
+-- F9 = Open/Close Menu
+-- =================================================
+
+local menuOpen = false
+local autoFarm = false
+local delayTimer = 0
+local customDelay = 40          -- bisa diubah di menu
+local selectedPay = 7500        -- default gaji per delivery
+local totalEarned = 0
+local deliveries = 0
+
+-- KOORDINAT TELEPORT 100% AKURAT (sesuai permintaan terakhirmu)
+local TeleportPoints = {
+    vector3(-13002.09, 1051.89, -16360.71),    -- 1
+    vector3(-25909.39, 1050.33, -43890.75),    -- 2
+    vector3(-38720.98, 1013.07, -62484.11),    -- 3
+    vector3(-50884.77, 1012.89, -86511.50),    -- 4
+    vector3(-21798.52, 1042.03, -26797.30),    -- bonus (yang pertama kamu kasih)
+}
+
+-- Gaji per truck (bisa diubah di menu)
+local PaymentOptions = {
+    {name = "Phantom Biasa", pay = 5500},
+    {name = "Packer",        pay = 7200},
+    {name = "Hauler",        pay = 8500},
+    {name = "Hauler2 VIP",   pay = 10500},
+}
+local selectedPayIndex = 2
+
+-- SHOW ALL POINTS 100% AKURAT
+Citizen.CreateThread(function()
+    while true do
+        Wait(0)
+        for _, coord in pairs(TeleportPoints) do
+            -- Marker besar hijau
+            DrawMarker(21, coord.x, coord.y, coord.z + 0.5, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 3.0, 3.0, 2.0, 0, 255, 50, 200, true, false, 2, true, nil, nil, false)
+            -- 3D Text
+            DrawText3D(coord.x, coord.y, coord.z + 2.5, "~g~CDID DELIVERY POINT~w~\nGaji: $"..selectedPay)
+            -- Blip di map
+            local blip = AddBlipForCoord(coord.x, coord.y, coord.z)
+            SetBlipSprite(blip, 478)
+            SetBlipColour(blip, 2)
+            SetBlipScale(blip, 0.8)
+            SetBlipAsShortRange(blip, false)
+            BeginTextCommandSetBlipName("STRING")
+            AddTextComponentString("CDID Farm Point")
+            EndTextCommandSetBlipName(blip)
+        end
+    end
+end)
+
+-- MENU UI (imgui style - pakai native FiveM menu pun bisa, ini lebih clean)
+Citizen.CreateThread(function()
+    while true do
+        Wait(0)
+        
+        if IsControlJustPressed(0, 168) then -- F9
+            menuOpen = not menuOpen
+        end
+
+        if menuOpen then
+            -- Background
+            DrawRect(0.5, 0.5, 0.35, 0.55, 0, 0, 0, 200)
+
+            -- Title
+            DrawText2D(0.37, 0.25, "CDID TELEPORT AUTOFARM", 0.8, {0, 255, 0, 255})
+            DrawText2D(0.37, 0.29, "F9 = Hide | Status: "..(autoFarm and "~g~AKTIF" or "~r~NONAKTIF"), 0.5, {255,255,255,255})
+
+            -- Start/Stop Button
+            if DrawButton(0.43, 0.35, 0.25, 0.06, autoFarm and "~r~STOP FARM" or "~g~START FARM") then
+                autoFarm = not autoFarm
+                if autoFarm then
+                    Citizen.CreateThread(AutoFarmLoop)
+                end
+            end
+
+            -- Payment Selector
+            DrawText2D(0.38, 0.44, "Pilih Gaji per Delivery:", 0.5, {255,255,255,255})
+            for i, v in ipairs(PaymentOptions) do
+                local color = (selectedPayIndex == i) and "~g~" or "~w~"
+                if DrawButton(0.38, 0.47 + (i-1)*0.04, 0.29, 0.035, color..v.name.." ~s~→ ~y~$"..v.pay) then
+                    selectedPayIndex = i
+                    selectedPay = v.pay
+                end
+            end
+
+            -- Delay Setting
+            DrawText2D(0.38, 0.64, "Delay antar delivery (detik):", 0.5, {255,255,255,255})
+            if DrawButton(0.45, 0.68, 0.05, 0.04, "-") and customDelay > 10 then customDelay = customDelay - 5 end
+            DrawText2D(0.52, 0.68, "~y~"..customDelay.." ~w~detik", 0.7, {255,255,255,255})
+            if DrawButton(0.58, 0.68, 0.05, 0.04, "+") and customDelay < 300 then customDelay = customDelay + 5 end
+
+            -- Stats
+            DrawText2D(0.38, 0.75, "Total Delivery  : ~g~"..deliveries, 0.55, {255,255,255,255})
+            DrawText2D(0.38, 0.79, "Total Earned    : ~g~$"..string.format("%.0f", totalEarned), 0.6, {255,255,255,255})
+            DrawText2D(0.38, 0.83, "Timer           : ~y~"..delayTimer.." ~w~detik", 0.7, {255,255,0,255})
+
+            -- High Ping Warning
+            local ping = GetPlayerPing(PlayerId())
+            if ping > 250 then
+                DrawText2D(0.5, 0.90, "~r~HIGH PING DETECTED: "..ping.."ms ~w~(Farm dipause otomatis)", 0.6, {255,0,0,255})
+            end
+        else
+            -- Kalau menu ditutup, tetap tampilkan timer kecil
+            if autoFarm then
+                DrawText2D(0.92, 0.05, "CDID ~g~ON~w~ | Next: ~y~"..delayTimer.."s~w~ | Earned: ~g~$"..string.format("%.0f", totalEarned), 0.45, {255,255,255,255})
+            end
+        end
+    end
+end)
+
+-- AUTOFARM LOOP (TELEPORT ONLY - SUPER CEPAT & CLEAN)
+function AutoFarmLoop()
+    while autoFarm do
+        Wait(1000)
+
+        -- HIGH PING AUTO PAUSE
+        if GetPlayerPing(PlayerId()) > 250 then
+            Wait(10000)
+            goto continue
+        end
+
+        -- Teleport ke random point
+        local randomPoint = TeleportPoints[math.random(#TeleportPoints)]
+        SetEntityCoords(PlayerPedId(), randomPoint.x, randomPoint.y, randomPoint.z + 2.0, false, false, false, true)
+        
+        -- Delay countdown
+        for i = customDelay, 0, -1 do
+            delayTimer = i
+            if not autoFarm then break end
+            if GetPlayerPing(PlayerId()) > 250 then break end
+            Wait(1000)
+        end
+
+        -- Beri uang (server event)
+        TriggerServerEvent("cdid:teleportReward", selectedPay)
+        totalEarned = totalEarned + selectedPay
+        deliveries = deliveries + 1
+
+        -- Notifikasi kecil
+        ShowNotification("~g~Delivery selesai! ~w~+$"..selectedPay.." (Total: $"..string.format("%.0f", totalEarned)..")")
+
+        ::continue::
+    end
+end
+
+-- SERVER SIDE (taruh di server.lua resource terpisah)
+--[[
+RegisterServerEvent("cdid:teleportReward")
+AddEventHandler("cdid:teleportReward", function(amount)
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)  -- atau ESX kalau pake ESX
+    if Player then
+        Player.Functions.AddMoney("bank", amount, "CDID Delivery")
+    end
+end)
+--]]
+
+-- FUNGSI BANTUAN
+function DrawText3D(x, y, z, text)
+    SetTextScale(0.4, 0.4)
+    SetTextFont(4)
+    SetTextProportional(1)
+    SetTextColour(255, 255, 255, 255)
+    BeginTextCommandDisplayText("STRING")
+    AddTextComponentSubstringPlayerName(text)
+    SetDrawOrigin(x, y, z, 0)
+    EndTextCommandDisplayText(0.0, 0.0)
+    ClearDrawOrigin()
+end
+
+function DrawText2D(x, y, text, scale, color)
+    SetTextFont(4)
+    SetTextScale(scale or 0.5, scale or 0.5)
+    SetTextColour(color[1], color[2], color[3], color[4])
+    BeginTextCommandDisplayText("STRING")
+    AddTextComponentSubstringPlayerName(text)
+    EndTextCommandDisplayText(x, y)
+end
+
+function DrawRect(x, y, w, h, r, g, b, a)
+    DrawRect(x, y, w, h, r, g, b, a)
+end
+
+function DrawButton(x, y, w, h, text)
+    DrawRect(x + w/2, y + h/2, w, h, 30, 30, 30, 220)
+    DrawText2D(x + 0.01, y + 0.005, text, 0.4, {255,255,255,255})
+    if IsMouseInRegion(x, y, x+w, y+h) and IsControlJustPressed(0, 24) then
+        return true
+    end
+    return false
+end
+
+function IsMouseInRegion(left, top, right, bottom)
+    local mouseX, mouseY = GetNuiCursorPosition()
+    local resX, resY = GetActiveScreenResolution()
+    mouseX = mouseX / resX
+    mouseY = mouseY / resY
+    return mouseX >= left and mouseX <= right and mouseY >= top and mouseY <= bottom
+end
+
+function ShowNotification(msg)
+    SetNotificationTextEntry("STRING")
+    AddTextComponentString(msg)
+    DrawNotification(false, true)
+end
