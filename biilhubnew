@@ -1,450 +1,103 @@
--- LocalScript: Bill Hub - Auto Farm Kurir (LEVEL PRO, UI + AutoFarm + Notif + Save pos)
--- Tempatkan di StarterPlayer > StarterPlayerScripts
+-- LocalScript di StarterPlayerScripts
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local player = Players.LocalPlayer
+-- Buat ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BillHubUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
--- ======== WAYPOINTS (pakai koordinatmu yang asli) ========
-local Waypoints = {
-    Vector3.new(-5111, 5, -3760),   -- 1 : ambil job (sekali)
-    Vector3.new(-6795, 3, -444),    -- 2 : farm start
-    Vector3.new(-17053, 104, 6567), -- 3
-    Vector3.new(-6741, 3, 2975),    -- 4
-    Vector3.new(-8777, 3, 644),     -- 5
-    Vector3.new(-8382, 2, -3822)    -- 6 : akhir
-}
+-- Tombol Bulat B
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 60, 0, 60)
+toggleButton.Position = UDim2.new(0, 20, 0.7, -30)
+toggleButton.Text = "B"
+toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 26
+toggleButton.BorderSizePixel = 0
+toggleButton.AutoButtonColor = true
+toggleButton.Draggable = true
+toggleButton.Parent = screenGui
 
--- default delay
-local delaySeconds = 18
+-- Menu Utama
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 350, 0, 260)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -130)
+mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+mainFrame.Visible = false
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
--- state
-local AutoFarmKurir = false
-local tookJobThisRun = false
+-- Header Premium BillHub
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+header.Text = "Premium  |  BillHub"
+header.TextColor3 = Color3.fromRGB(220, 220, 220)
+header.Font = Enum.Font.GothamBold
+header.TextSize = 22
+header.Parent = mainFrame
 
--- helper: get hrp and humanoid, refresh on respawn
-local hrp, humanoid
-local function refreshCharacter()
-    local char = player.Character or player.CharacterAdded:Wait()
-    hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart", 10)
-    humanoid = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid", 10)
-end
-if not player.Character then
-    player.CharacterAdded:Wait()
-end
-refreshCharacter()
-player.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    refreshCharacter()
+-- Tombol Auto Farm Kurir
+local farmButton = Instance.new("TextButton")
+farmButton.Size = UDim2.new(0, 280, 0, 50)
+farmButton.Position = UDim2.new(0.5, -140, 0, 70)
+farmButton.Text = "Auto Farm Kurir : OFF"
+farmButton.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
+farmButton.TextColor3 = Color3.new(1,1,1)
+farmButton.Font = Enum.Font.GothamBold
+farmButton.TextSize = 18
+farmButton.Parent = mainFrame
+
+-- Delay Display
+local delayLabel = Instance.new("TextLabel")
+delayLabel.Size = UDim2.new(0, 280, 0, 40)
+delayLabel.Position = UDim2.new(0.5, -140, 0, 130)
+delayLabel.Text = "Delay: 18 Detik"
+delayLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+delayLabel.TextColor3 = Color3.new(1,1,1)
+delayLabel.Font = Enum.Font.Gotham
+delayLabel.TextSize = 16
+delayLabel.Parent = mainFrame
+
+-- Notifikasi Sampng Layar
+local notification = Instance.new("TextLabel")
+notification.Size = UDim2.new(0, 250, 0, 30)
+notification.Position = UDim2.new(1, -260, 0.8, 0)
+notification.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+notification.TextColor3 = Color3.new(1,1,1)
+notification.Font = Enum.Font.Gotham
+notification.TextSize = 16
+notification.Visible = false
+notification.Parent = screenGui
+
+-- Fungsi Toggle Menu
+toggleButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
 end)
 
--- try find server interact remote (recommended to add this RemoteEvent in your game)
-local InteractEvent
-pcall(function()
-    InteractEvent = ReplicatedStorage:FindFirstChild("Interact")
-end)
-
--- notification helper (spawn frame on side)
-local function showNotification(text, duration)
-    duration = duration or 3
-    local screenGui = player:WaitForChild("PlayerGui")
-    local notifGui = screenGui:FindFirstChild("BillHub_Notif")
-    if not notifGui then
-        notifGui = Instance.new("ScreenGui")
-        notifGui.Name = "BillHub_Notif"
-        notifGui.Parent = screenGui
-    end
-
-    local frame = Instance.new("Frame", notifGui)
-    frame.Size = UDim2.new(0, 280, 0, 40)
-    frame.Position = UDim2.new(1, -300, 0.2, 0) -- right side
-    frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    frame.BorderSizePixel = 0
-
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, -10, 1, -6)
-    label.Position = UDim2.new(0,5,0,3)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.Font = Enum.Font.Gotham
-    label.TextScaled = true
-
-    task.delay(duration, function()
-        if frame and frame.Parent then frame:Destroy() end
-    end)
+-- Fungsi Kecil untuk Notifikasi
+local function showNotification(text)
+    notification.Text = text
+    notification.Visible = true
+    wait(2)
+    notification.Visible = false
 end
 
--- auto equip safe helper
-local function tryAutoEquip()
-    pcall(function()
-        local backpack = player:FindFirstChild("Backpack")
-        if backpack then
-            for _, it in ipairs(backpack:GetChildren()) do
-                if it:IsA("Tool") then
-                    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-                    if hum then
-                        hum:EquipTool(it)
-                    end
-                    break
-                end
-            end
-        end
-    end)
-end
-
--- auto "press F" helper: prefer server RemoteEvent, else try tool activation
-local function tryPressF()
-    -- prefer server-side event if available
-    if InteractEvent and InteractEvent:IsA("RemoteEvent") then
-        pcall(function() InteractEvent:FireServer() end)
-        return
-    end
-
-    -- else, try to activate equipped tool
-    pcall(function()
-        local char = player.Character
-        if not char then return end
-        for _, obj in ipairs(char:GetChildren()) do
-            if obj:IsA("Tool") then
-                -- call Activate if exists (some tools implement Activate)
-                if obj:FindFirstChildWhichIsA then
-                    -- best-effort: fire 'Activated' via :Activate (may or may not work depending how tool coded)
-                    if typeof(obj.Activate) == "function" then
-                        obj:Activate()
-                    else
-                        -- fallback: try to fire server event named "UseTool" (if exists)
-                        local useTool = ReplicatedStorage:FindFirstChild("UseTool")
-                        if useTool and useTool:IsA("RemoteEvent") then
-                            useTool:FireServer(obj)
-                        end
-                    end
-                end
-                break
-            end
-        end
-    end)
-end
-
--- teleport helper (use CFrame for reliable placement)
-local function teleportToPos(v3)
-    if not hrp then refreshCharacter() end
-    pcall(function()
-        if hrp and v3 then
-            hrp.CFrame = CFrame.new(v3 + Vector3.new(0, 2, 0))
-        end
-    end)
-end
-
--- money/progress display container
-local function createStatsFrame(parent)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(0, 220, 0, 70)
-    frame.Position = UDim2.new(0, 12, 0, 12)
-    frame.BackgroundTransparency = 1
-
-    local moneyLabel = Instance.new("TextLabel", frame)
-    moneyLabel.Size = UDim2.new(1,0,0,32)
-    moneyLabel.Position = UDim2.new(0,0,0,0)
-    moneyLabel.BackgroundTransparency = 1
-    moneyLabel.Text = "Rp. 0"
-    moneyLabel.Font = Enum.Font.GothamBold
-    moneyLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    moneyLabel.TextScaled = true
-
-    local progLabel = Instance.new("TextLabel", frame)
-    progLabel.Size = UDim2.new(1,0,0,28)
-    progLabel.Position = UDim2.new(0,0,0,36)
-    progLabel.BackgroundTransparency = 1
-    progLabel.Text = "Progress: 0/0"
-    progLabel.Font = Enum.Font.Gotham
-    progLabel.TextColor3 = Color3.fromRGB(200,200,200)
-    progLabel.TextScaled = true
-
-    return {
-        Frame = frame,
-        Money = moneyLabel,
-        Progress = progLabel
-    }
-end
-
--- ======== UI BUILD (main window like screenshot) =========
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "BillHubGUI"
-
--- main frame (center)
-local main = Instance.new("Frame", screenGui)
-main.Name = "MainFrame"
-main.Size = UDim2.new(0, 520, 0, 300)
-main.Position = UDim2.new(0.5, -260, 0.5, -150)
-main.BackgroundColor3 = Color3.fromRGB(30,30,30)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = false
-
--- title area with Premium and billhub
-local titleBar = Instance.new("Frame", main)
-titleBar.Size = UDim2.new(1,0,0,60)
-titleBar.Position = UDim2.new(0,0,0,0)
-titleBar.BackgroundColor3 = Color3.fromRGB(38,38,38)
-
-local premiumLabel = Instance.new("TextLabel", titleBar)
-premiumLabel.Size = UDim2.new(1, -20, 1, 0)
-premiumLabel.Position = UDim2.new(0, 10, 0, 0)
-premiumLabel.BackgroundTransparency = 1
-premiumLabel.Text = "Premium"
-premiumLabel.Font = Enum.Font.GothamBold
-premiumLabel.TextColor3 = Color3.fromRGB(0,0,0) -- hitam
-premiumLabel.TextScaled = true
-premiumLabel.TextXAlignment = Enum.TextXAlignment.Center
-
-local billhubSmall = Instance.new("TextLabel", titleBar)
-billhubSmall.Size = UDim2.new(0,120,0,20)
-billhubSmall.Position = UDim2.new(1, -140, 0, 8)
-billhubSmall.BackgroundTransparency = 1
-billhubSmall.Text = "billhub"
-billhubSmall.Font = Enum.Font.Gotham
-billhubSmall.TextColor3 = Color3.fromRGB(200,200,200)
-billhubSmall.TextScaled = true
-
--- left sidebar
-local sidebar = Instance.new("Frame", main)
-sidebar.Size = UDim2.new(0,100,1, -70)
-sidebar.Position = UDim2.new(0,0,0,60)
-sidebar.BackgroundColor3 = Color3.fromRGB(25,25,25)
-
-local tabMain = Instance.new("TextButton", sidebar)
-tabMain.Size = UDim2.new(1,0,0,50)
-tabMain.Position = UDim2.new(0,0,0,10)
-tabMain.Text = "Main"
-tabMain.Font = Enum.Font.Gotham
-tabMain.TextColor3 = Color3.fromRGB(255,255,255)
-tabMain.BackgroundColor3 = Color3.fromRGB(45,45,45)
-tabMain.TextScaled = true
-
--- right content area
-local content = Instance.new("Frame", main)
-content.Size = UDim2.new(1, -120, 1, -80)
-content.Position = UDim2.new(0,120,0,70)
-content.BackgroundColor3 = Color3.fromRGB(35,35,35)
-
--- stats on top-left of content
-local stats = createStatsFrame(content)
-stats.Frame.Parent = content
-stats.Frame.Position = UDim2.new(0, 8, 0, 8)
-
--- big toggle button (Auto Farm Kurir)
-local afBtn = Instance.new("TextButton", content)
-afBtn.Size = UDim2.new(0.9, 0, 0, 72)
-afBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
-afBtn.Text = "Auto Farm Kurir: OFF"
-afBtn.Font = Enum.Font.GothamBold
-afBtn.TextColor3 = Color3.fromRGB(255,255,255)
-afBtn.TextScaled = true
-afBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
-
--- delay controls
-local lblDelay = Instance.new("TextLabel", content)
-lblDelay.Size = UDim2.new(0.6,0,0,28)
-lblDelay.Position = UDim2.new(0.05,0,0.68,0)
-lblDelay.Text = "Delay (detik):"
-lblDelay.BackgroundTransparency = 1
-lblDelay.Font = Enum.Font.Gotham
-lblDelay.TextColor3 = Color3.fromRGB(200,200,200)
-lblDelay.TextScaled = true
-
-local delayBox = Instance.new("TextBox", content)
-delayBox.Size = UDim2.new(0.28,0,0,28)
-delayBox.Position = UDim2.new(0.67,0,0.68,0)
-delayBox.Text = tostring(delaySeconds)
-delayBox.Font = Enum.Font.Gotham
-delayBox.TextColor3 = Color3.fromRGB(255,255,255)
-delayBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
-delayBox.TextScaled = true
-delayBox.ClearTextOnFocus = false
-
--- small notification area inside UI (also we'll show side notifications)
-local uiNotif = Instance.new("TextLabel", content)
-uiNotif.Size = UDim2.new(1, -20, 0, 26)
-uiNotif.Position = UDim2.new(0,10,0.9, -30)
-uiNotif.BackgroundTransparency = 1
-uiNotif.Text = "Notif: -"
-uiNotif.Font = Enum.Font.Gotham
-uiNotif.TextColor3 = Color3.fromRGB(200,200,200)
-uiNotif.TextScaled = true
-
--- close button top-right
-local closeBtn = Instance.new("TextButton", main)
-closeBtn.Size = UDim2.new(0,42,0,34)
-closeBtn.Position = UDim2.new(1,-48,0,8)
-closeBtn.Text = "X"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextScaled = true
-closeBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
-closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
-closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
-
--- circle B (draggable) in bottom-left
-local circle = Instance.new("TextButton", screenGui)
-circle.Name = "OpenButton"
-circle.Size = UDim2.new(0,58,0,58)
-circle.Position = UDim2.new(0.02, 0, 0.78, 0)
-circle.Text = "B"
-circle.Font = Enum.Font.GothamBold
-circle.TextScaled = true
-circle.BackgroundColor3 = Color3.fromRGB(0,120,220)
-circle.TextColor3 = Color3.fromRGB(255,255,255)
-
--- implement draggable for circle; save pos to player (Vector2Value)
-local savedPos = player:FindFirstChild("BillHub_UI_Pos")
-if not savedPos then
-    savedPos = Instance.new("Vector2Value")
-    savedPos.Name = "BillHub_UI_Pos"
-    savedPos.Parent = player
-    savedPos.Value = Vector2.new(circle.Position.X.Scale, circle.Position.Y.Scale)
-else
-    local v = savedPos.Value
-    if typeof(v) == "Vector2" then
-        circle.Position = UDim2.new(v.X, 0, v.Y, 0)
-    end
-end
-
-do
-    local dragging = false
-    local dragStart = Vector2.new()
-    local startPos = UDim2.new()
-    local function update(input)
-        local delta = input.Position - dragStart
-        local newX = startPos.X.Offset + delta.X
-        local newY = startPos.Y.Offset + delta.Y
-        -- clamp
-        local vx = math.clamp(newX / workspace.CurrentCamera.ViewportSize.X, 0, 1)
-        local vy = math.clamp(newY / workspace.CurrentCamera.ViewportSize.Y, 0, 1)
-        circle.Position = UDim2.new(vx, 0, vy, 0)
-    end
-
-    circle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = circle.AbsolutePosition and circle.Position or circle.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    -- save
-                    local pos = circle.Position
-                    savedPos.Value = Vector2.new(pos.X.Scale, pos.Y.Scale)
-                end
-            end)
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            update(input)
-        end
-    end)
-end
-
--- circle click toggles UI
-circle.MouseButton1Click:Connect(function()
-    main.Visible = not main.Visible
-end)
-
--- delay box update
-delayBox.FocusLost:Connect(function(enter)
-    local v = tonumber(delayBox.Text)
-    if v and v > 0 then
-        delaySeconds = math.floor(v)
-        delayBox.Text = tostring(delaySeconds)
+-- Saat Tombol Farm diklik (Masih UI Saja)
+farmButton.MouseButton1Click:Connect(function()
+    local isActive = farmButton.Text:find("OFF")
+    if isActive then
+        farmButton.Text = "Auto Farm Kurir : ON"
+        farmButton.BackgroundColor3 = Color3.fromRGB(30, 150, 30)
+        showNotification("Auto Farm Kurir Aktif!")
     else
-        delayBox.Text = tostring(delaySeconds)
+        farmButton.Text = "Auto Farm Kurir : OFF"
+        farmButton.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
+        showNotification("Auto Farm Kurir Dimatikan.")
     end
 end)
-
--- stats updater (money / progress)
-local totalEarned = 0
-local function addMoney(amount)
-    totalEarned = totalEarned + (amount or 0)
-    stats.Money.Text = "Rp. " .. tostring(totalEarned)
-end
-
-local function setProgress(cur, total)
-    stats.Progress.Text = ("Progress: %d/%d"):format(cur, total)
-end
-
--- toggle auto farm
-afBtn.MouseButton1Click:Connect(function()
-    AutoFarmKurir = not AutoFarmKurir
-    afBtn.Text = "Auto Farm Kurir: " .. (AutoFarmKurir and "ON" or "OFF")
-    afBtn.BackgroundColor3 = AutoFarmKurir and Color3.fromRGB(0,140,0) or Color3.fromRGB(150,0,0)
-    uiNotif.Text = AutoFarmKurir and "Notif: AutoFarm Started" or "Notif: AutoFarm Stopped"
-    if AutoFarmKurir then
-        tookJobThisRun = false
-    end
-end)
-
--- CORE auto farm loop
-task.spawn(function()
-    while true do
-        if AutoFarmKurir then
-            -- ensure char
-            if not hrp or not hrp.Parent then refreshCharacter() end
-
-            -- 1) Ambil job (waypoint 1 only once per ON)
-            if not tookJobThisRun then
-                uiNotif.Text = "Notif: Going to job pickup (1)..."
-                showNotification("Teleport: Waypoint 1 (Ambil Job)", 3)
-                teleportToPos = function(v) pcall(function() hrp.CFrame = CFrame.new(v + Vector3.new(0,2,0)) end) end
-                -- teleport
-                teleportToPos(Waypoints[1])
-                task.wait(1.2)
-                -- press/interact
-                tryPressF()
-                task.wait(1.2)
-                tookJobThisRun = true
-            end
-
-            -- 2) Loop waypoints 2..6
-            for idx = 2, #Waypoints do
-                if not AutoFarmKurir then break end
-                uiNotif.Text = "Notif: Teleporting to waypoint " .. tostring(idx)
-                showNotification("Teleport: Waypoint " .. tostring(idx), 2)
-                -- teleport
-                pcall(function() hrp.CFrame = CFrame.new(Waypoints[idx] + Vector3.new(0,2,0)) end)
-                task.wait(0.8)
-                -- try equip
-                tryAutoEquip()
-                task.wait(0.4)
-                -- try press/interact
-                tryPressF()
-                -- assume each delivery gives some money (if your server returns value via event, integrate here)
-                -- for demo we add fixed amount (replace or fire server to get real reward)
-                addMoney(75000) -- example reward; change as needed or hook server event
-                -- update progress
-                setProgress(idx-1, #Waypoints-1)
-                -- countdown delay with progress text
-                for s = delaySeconds, 1, -1 do
-                    if not AutoFarmKurir then break end
-                    uiNotif.Text = ("Notif: Waiting %ds"):format(s)
-                    task.wait(1)
-                end
-            end
-
-            if AutoFarmKurir then
-                uiNotif.Text = "Notif: Job cycle finished, repeating..."
-                showNotification("Job finished, restarting farm...", 2)
-                task.wait(1.2)
-            end
-        else
-            task.wait(0.3)
-        end
-        task.wait(0.2)
-    end
-end)
-
--- initial state: UI hidden
-main.Visible = false
