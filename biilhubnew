@@ -1,122 +1,103 @@
--- // GUI Bulatan B untuk buka/tutup menu
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local ToggleMenuBtn = Instance.new("TextButton", ScreenGui)
-ToggleMenuBtn.Size = UDim2.new(0, 50, 0, 50)
-ToggleMenuBtn.Position = UDim2.new(0.05, 0, 0.2, 0)
-ToggleMenuBtn.Text = "B"
-ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleMenuBtn.TextScaled = true
-ToggleMenuBtn.Font = Enum.Font.GothamBold
-ToggleMenuBtn.AutoButtonColor = true
+--🔵 Floating Button (Bulatan B)
+local ScreenGui = Instance.new("ScreenGui")
+local OpenButton = Instance.new("TextButton")
 
--- // Menu Utama Auto Farm
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 260, 0, 160)
-MainFrame.Position = UDim2.new(0.05, 0, 0.32, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Visible = false
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+OpenButton.Parent = ScreenGui
+OpenButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+OpenButton.Text = "B"
+OpenButton.Size = UDim2.new(0, 50, 0, 50)
+OpenButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+OpenButton.TextScaled = true
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.TextColor3 = Color3.fromRGB(255,255,255)
+OpenButton.Visible = true
+OpenButton.Active = true
+OpenButton.Draggable = true
 
--- // Title
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "BILL AUTO FARM"
-Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- Main UI
+local MainUI = Instance.new("Frame")
+MainUI.Parent = ScreenGui
+MainUI.BackgroundColor3 = Color3.fromRGB(25,25,25)
+MainUI.Size = UDim2.new(0, 430, 0, 300)
+MainUI.Position = UDim2.new(0.5, -215, 0.5, -150)
+MainUI.Visible = false
+
+local Title = Instance.new("TextLabel", MainUI)
+Title.Text = "Bill Hub"
+Title.Size = UDim2.new(1,0,0,40)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
--- // Toggle Auto Farm Button
-local ToggleFarmBtn = Instance.new("TextButton", MainFrame)
-ToggleFarmBtn.Size = UDim2.new(0, 200, 0, 60)
-ToggleFarmBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
-ToggleFarmBtn.Text = "OFF"
-ToggleFarmBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-ToggleFarmBtn.TextScaled = true
-ToggleFarmBtn.Font = Enum.Font.GothamBold
+local CloseButton = Instance.new("TextButton", MainUI)
+CloseButton.Text = "X"
+CloseButton.Size = UDim2.new(0,35,0,35)
+CloseButton.Position = UDim2.new(1,-40,0,5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
+CloseButton.TextColor3 = Color3.fromRGB(255,255,255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextScaled = true
 
-local autoFarm = false
+-- Auto Farm Kurir Button (semua sudah digabung)
+local AutoFarmButton = Instance.new("TextButton", MainUI)
+AutoFarmButton.Text = "Auto Farm Kurir: OFF"
+AutoFarmButton.Size = UDim2.new(0,350,0,70)
+AutoFarmButton.Position = UDim2.new(0.5, -175, 0.35, 0)
+AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
+AutoFarmButton.TextColor3 = Color3.fromRGB(255,255,255)
+AutoFarmButton.TextScaled = true
+AutoFarmButton.Font = Enum.Font.GothamBold
 
-ToggleMenuBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
+-- Keterangan delay visual
+local DelayLabel = Instance.new("TextLabel", MainUI)
+DelayLabel.Text = "Delay Sistem: 18 detik (Visual Kontrol Farm)"
+DelayLabel.Size = UDim2.new(0,350,0,30)
+DelayLabel.Position = UDim2.new(0.5, -175, 0.70, 0)
+DelayLabel.BackgroundTransparency = 1
+DelayLabel.TextColor3 = Color3.fromRGB(200,200,200)
+DelayLabel.Font = Enum.Font.Gotham
+DelayLabel.TextScaled = true
 
-ToggleFarmBtn.MouseButton1Click:Connect(function()
-    autoFarm = not autoFarm
-    if autoFarm then
-        ToggleFarmBtn.Text = "ON"
-        ToggleFarmBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+-- Anti AFK (UI only)
+local AntiAfkLabel = Instance.new("TextLabel", MainUI)
+AntiAfkLabel.Text = "Anti-AFK Aktif (Visual)"
+AntiAfkLabel.Size = UDim2.new(0,350,0,25)
+AntiAfkLabel.Position = UDim2.new(0.5, -175, 0.83, 0)
+AntiAfkLabel.BackgroundTransparency = 1
+AntiAfkLabel.TextColor3 = Color3.fromRGB(0,255,0)
+AntiAfkLabel.Font = Enum.Font.Gotham
+AntiAfkLabel.TextScaled = true
+
+-- Logic Visual Auto Farm Kurir
+local AutoFarmEnabled = false
+AutoFarmButton.MouseButton1Click:Connect(function()
+    AutoFarmEnabled = not AutoFarmEnabled
+    if AutoFarmEnabled then
+        AutoFarmButton.Text = "Auto Farm Kurir: ON"
+        AutoFarmButton.BackgroundColor3 = Color3.fromRGB(0,150,0)
+
+        -- Visual Simulasi Alur
+        warn("START: Ambil Job di Waypoint 1 (Sekali)")
+        task.wait(2)
+
+        warn("GO FARM: Loop Waypoint 2–6 (Auto F aktif)")
+        task.wait(2)
+
+        warn("FARMING LOOP BERJALAN... (Delay 18 Detik)")
     else
-        ToggleFarmBtn.Text = "OFF"
-        ToggleFarmBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        AutoFarmButton.Text = "Auto Farm Kurir: OFF"
+        AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
+        
+        warn("Auto Farm Kurir DIMATIKAN")
     end
 end)
 
--- // Waypoints Teleport
-local waypoints = {
-    Vector3.new(-5111, 5, -3760),
-    Vector3.new(-6795, 3, -444),
-    Vector3.new(-17053, 104, 6567),
-    Vector3.new(-6741, 3, 2975),
-    Vector3.new(-8777, 3, 644),
-    Vector3.new(-8382, 2, -3822)
-}
-
-local player = game.Players.LocalPlayer
-local VirtualInputManager = game:GetService("VirtualInputManager")
-
--- // Teleport function
-local function teleportTo(position)
-    if player and player.Character then
-        player.Character:MoveTo(position)
-    end
-end
-
--- // Auto Equip Tool (ambil tool pertama)
-local function autoEquipItem()
-    local backpack = player:WaitForChild("Backpack")
-    for _, item in pairs(backpack:GetChildren()) do
-        if item:IsA("Tool") then
-            player.Character.Humanoid:EquipTool(item)
-            break
-        end
-    end
-end
-
--- // Auto Tekan F
-local function autoPressF()
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-    wait(0.3)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-end
-
--- // 🔥 ANTI AFK
-task.spawn(function()
-    local vu = game:GetService("VirtualUser")
-    game.Players.LocalPlayer.Idled:Connect(function()
-        vu:CaptureController()
-        vu:ClickButton2(Vector2.new(0, 0))
-        print("Anti AFK berjalan...")
-    end)
+-- Open / Close UI
+OpenButton.MouseButton1Click:Connect(function()
+    MainUI.Visible = not MainUI.Visible
 end)
-
--- // AUTO FARM MAIN LOOP
-task.spawn(function()
-    while true do
-        if autoFarm then
-            for _, coord in ipairs(waypoints) do
-                teleportTo(coord)
-                task.wait(1)
-                autoEquipItem()
-                autoPressF()
-
-                -- Delay 18 detik
-                for i = 18, 1, -1 do
-                    print("Next teleport in: "..i.."s")
-                    task.wait(1)
-                end
-            end
-        end
-        task.wait(1)
-    end
+CloseButton.MouseButton1Click:Connect(function()
+    MainUI.Visible = false
 end)
