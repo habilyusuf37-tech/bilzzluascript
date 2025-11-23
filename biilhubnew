@@ -1,0 +1,149 @@
+-- ====== GUI SETUP ====== --
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local CloseButton = Instance.new("TextButton")
+local Sidebar = Instance.new("Frame")
+local AutoTeleportButton = Instance.new("TextButton")
+local AutoFarmButton = Instance.new("TextButton")
+local AutoFButton = Instance.new("TextButton")
+local DelayBox = Instance.new("TextBox")
+local DelayLabel = Instance.new("TextLabel")
+
+-- ====== UI DESIGN ====== --
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 420, 0, 300)
+MainFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.Text = "Bill Hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 22
+
+CloseButton.Parent = MainFrame
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.Text = "X"
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- ====== BUTTONS ======
+AutoTeleportButton.Parent = MainFrame
+AutoTeleportButton.Size = UDim2.new(0, 250, 0, 40)
+AutoTeleportButton.Position = UDim2.new(0, 140, 0, 60)
+AutoTeleportButton.Text = "Auto Teleport: OFF"
+AutoTeleportButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+AutoTeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+AutoFarmButton.Parent = MainFrame
+AutoFarmButton.Size = UDim2.new(0, 250, 0, 40)
+AutoFarmButton.Position = UDim2.new(0, 140, 0, 110)
+AutoFarmButton.Text = "Auto Farm: OFF"
+AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+AutoFarmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+AutoFButton.Parent = MainFrame
+AutoFButton.Size = UDim2.new(0, 250, 0, 40)
+AutoFButton.Position = UDim2.new(0, 140, 0, 160)
+AutoFButton.Text = "Auto F (Ambil Item): OFF"
+AutoFButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+AutoFButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+DelayLabel.Parent = MainFrame
+DelayLabel.Size = UDim2.new(0, 250, 0, 25)
+DelayLabel.Position = UDim2.new(0, 140, 0, 205)
+DelayLabel.Text = "Delay Teleport (Detik)"
+DelayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+DelayLabel.BackgroundTransparency = 1
+DelayLabel.TextSize = 16
+
+DelayBox.Parent = MainFrame
+DelayBox.Size = UDim2.new(0, 250, 0, 30)
+DelayBox.Position = UDim2.new(0, 140, 0, 230)
+DelayBox.Text = "15"
+DelayBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DelayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- ====== LOGIC VARIABLES ======
+local waypointIndex = 1
+local teleportOn = false
+local farmOn = false
+local autoF = false
+local delayTime = 15
+
+-- ====== WAYPOINT COORDINATES ======
+local waypoints = {
+    Vector3.new(-5111, 5, -3760), -- 1
+    Vector3.new(-6795, 3, -444),  -- 2
+    Vector3.new(-17053, 104, 6567), -- 3
+    Vector3.new(-6741, 3, 2975), -- 4
+    Vector3.new(-8777, 3, 644),  -- 5
+    Vector3.new(-8382, 2, -3822) -- 6
+}
+
+-- ====== TELEPORT FUNCTION ======
+local function teleportTo(position)
+    local player = game.Players.LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character:MoveTo(position)
+    end
+end
+
+-- ====== BUTTON TOGGLES ======
+AutoTeleportButton.MouseButton1Click:Connect(function()
+    teleportOn = not teleportOn
+    AutoTeleportButton.Text = teleportOn and "Auto Teleport: ON" or "Auto Teleport: OFF"
+    AutoTeleportButton.BackgroundColor3 = teleportOn and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+end)
+
+AutoFarmButton.MouseButton1Click:Connect(function()
+    farmOn = not farmOn
+    AutoFarmButton.Text = farmOn and "Auto Farm: ON" or "Auto Farm: OFF"
+    AutoFarmButton.BackgroundColor3 = farmOn and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+end)
+
+AutoFButton.MouseButton1Click:Connect(function()
+    autoF = not autoF
+    AutoFButton.Text = autoF and "Auto F (Ambil Item): ON" or "Auto F (Ambil Item): OFF"
+    AutoFButton.BackgroundColor3 = autoF and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+end)
+
+-- ====== AUTO PRESS F FUNCTION ======
+task.spawn(function()
+    while true do
+        if autoF then
+            game:GetService("VirtualInputManager"):SendKeyEvent(true, "F", false, game)
+            task.wait(0.2)
+            game:GetService("VirtualInputManager"):SendKeyEvent(false, "F", false, game)
+        end
+        task.wait(15)
+    end
+end)
+
+-- ====== MAIN TELEPORT LOOP ======
+task.spawn(function()
+    while true do
+        delayTime = tonumber(DelayBox.Text) or 15
+        
+        if teleportOn then
+            teleportTo(waypoints[waypointIndex])
+            print("Teleport ke waypoint:", waypointIndex)
+            
+            waypointIndex = waypointIndex + 1
+            if waypointIndex > #waypoints then
+                waypointIndex = 1
+            end
+            
+            task.wait(delayTime)
+        end
+        task.wait(1)
+    end
+end)
