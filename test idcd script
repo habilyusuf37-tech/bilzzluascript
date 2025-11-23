@@ -14,7 +14,7 @@ local mouse = player:GetMouse()
 
 -- REDEEM
 local Redeemed = false
-local Key = "premiumbillzz"
+local Key = "premiumbill"
 if not Redeemed then
     local sg = Instance.new("ScreenGui", game.CoreGui)
     local fr = Instance.new("Frame", sg)
