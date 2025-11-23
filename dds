@@ -1,0 +1,188 @@
+--[[
+    Nama Skrip: AutomatedWaypointRunner_V_Final
+    Deskripsi: Skrip klien untuk teleportasi otomatis ke 6 koordinat dengan 
+               simulasi tekan tombol 'E' dan waktu tunda 10 detik di antara setiap aksi.
+    
+    CATATAN: Skrip ini memerlukan Executor untuk bypass keamanan Roblox.
+]]
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Pastikan Karakter dimuat
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart", 10)
+
+-- Pengaturan Utama
+local DELAY_SECONDS = 10 
+local Y_TELEPORT_OFFSET = 3 -- Offset Y untuk pendaratan yang aman
+
+-- DAFTAR KOORDINAT (X, Y, Z) - Sesuai Urutan Permintaan
+local Coordinates = {
+    -- 1. Titik Awal/Job Pickup (X:-5111 Y:5 Z:-3760)
+    {Vector3.new(-5111, 5, -3760), "Job Pickup (Awal)"}, 
+    -- 2. Waypoint 1 (X:-6795 Y:3 Z:-444)
+    {Vector3.new(-6795, 3, -444), "Antaran 1"}, 
+    -- 3. Waypoint 2 (X:-17053 Y:104 Z:6567)
+    {Vector3.new(-17053, 104, 6567), "Antaran 2"}, 
+    -- 4. Waypoint 3 (X:-6741 Y:3 Z:2975)
+    {Vector3.new(-6741, 3, 2975), "Antaran 3"},
+    -- 5. Waypoint 4 (X:-8777 Y:3 Z:644)
+    {Vector3.new(-8777, 3, 644), "Antaran 4"},
+    -- 6. Waypoint 5 (X:-8382 Y:2 Z:-3822) - Waypoint Terakhir
+    {Vector3.new(-8382, 2, -3822), "Antaran 5 (Akhir)"} 
+}
+
+-- Pengaturan Status
+local IsActive = false
+local IsRunning = false 
+
+--------------------
+-- FUNGSI AKSI & TELEPORT
+--------------------
+
+-- Fungsi untuk menyimulasikan penekanan tombol 'E'
+local function SimulateEPress(coord_data)
+    -- GANTI: Ini adalah fungsi placeholder. Ganti dengan fungsi executor Anda yang sebenarnya.
+    -- Contoh pada beberapa Executor: game:GetService("VirtualInputManager"):SendKeyEvent(Enum.KeyCode.E, true)
+    
+    print("Aksi: Tekan 'E' sekali klik di " .. coord_data[2])
+end
+
+-- Fungsi Teleportasi (TELEPORT)
+local function TeleportPlayer(vector3_coord)
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart", 5)
+    
+    if not HumanoidRootPart then 
+        warn("Gagal: HumanoidRootPart tidak ditemukan. Mencoba lagi.")
+        return 
+    end
+    
+    -- TELEPORT: Menggunakan CFrame
+    local safePosition = CFrame.new(vector3_coord) * CFrame.new(0, Y_TELEPORT_OFFSET, 0)
+    HumanoidRootPart.CFrame = safePosition
+    
+    -- Pindahkan kamera
+    game.Workspace.CurrentCamera.CFrame = HumanoidRootPart.CFrame
+    print("BERHASIL TELEPORT ke " .. tostring(vector3_coord))
+end
+
+-- Fungsi Urutan Utama
+local function RunTeleportSequence()
+    if IsRunning then return end
+    IsRunning = true
+    
+    for i, coord_data in ipairs(Coordinates) do
+        if not IsActive then break end
+        
+        local label = coord_data[2]
+        local is_last_waypoint = (i == #Coordinates)
+        
+        -- 1. TELEPORT ke lokasi
+        TeleportPlayer(coord_data[1])
+        
+        -- 2. Pencet 'E'
+        SimulateEPress(coord_data)
+        
+        -- 3. Delay 10 Detik 
+        if not is_last_waypoint and IsActive then 
+            for j = DELAY_SECONDS, 1, -1 do
+                if not IsActive then break end
+                DelayLabel.Text = string.format("DELAY OTOMATIS: %d s | Waypoint: %s (%d/%d)", j, label, i, #Coordinates)
+                task.wait(1)
+            end
+        end
+        
+        if not IsActive then break end
+    end
+    
+    -- Atur ulang status setelah selesai
+    IsActive = false
+    IsRunning = false
+    ToggleButton.Text = "OFF"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+    DelayLabel.Text = "Status: MATI (Urutan Selesai)"
+    print("Urutan Waypoint Selesai.")
+end
+
+--------------------
+-- GUI SETUP (ON/OFF MERAH & HIJAU)
+--------------------
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoRunnerMenu"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 260, 0, 100) -- Ukuran lebih besar untuk teks
+MainFrame.Position = UDim2.new(0.5, -130, 0, 5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Text = "ROBLOX WAYPOINT RUNNER"
+TitleLabel.Size = UDim2.new(1, 0, 0, 20)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+TitleLabel.TextSize = 14
+TitleLabel.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Text = "OFF"
+ToggleButton.Size = UDim2.new(0, 240, 0, 35)
+ToggleButton.Position = UDim2.new(0.5, -120, 0, 25)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah (OFF)
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.TextSize = 18
+ToggleButton.Parent = MainFrame
+
+local DelayLabel = Instance.new("TextLabel")
+DelayLabel.Name = "DelayLabel"
+DelayLabel.Text = "Status: MATI | Tombol - (Sembunyi)"
+DelayLabel.Size = UDim2.new(0, 240, 0, 35)
+DelayLabel.Position = UDim2.new(0.5, -120, 0, 65)
+DelayLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+DelayLabel.TextColor3 = Color3.new(1, 1, 1)
+DelayLabel.TextSize = 14
+DelayLabel.Parent = MainFrame
+
+--------------------
+-- KONEKSI EVENT
+--------------------
+
+-- Toggle ON/OFF
+local function ToggleScript()
+    IsActive = not IsActive
+    if IsActive then
+        ToggleButton.Text = "ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0) -- Hijau
+        DelayLabel.Text = "Delay: Menunggu... | Status: AKTIF"
+        
+        -- Jalankan urutan di thread baru
+        task.spawn(RunTeleportSequence)
+    else
+        -- Menghentikan paksa loop yang sedang berjalan
+        ToggleButton.Text = "OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Merah
+        DelayLabel.Text = "Status: MATI (Dihentikan)"
+    end
+end
+
+ToggleButton.MouseButton1Click:Connect(ToggleScript)
+
+-- Sembunyikan/Tampilkan Menu dengan Tombol '-' (Minus)
+local function ToggleVisibility(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.Minus and input.UserInputState == Enum.UserInputState.Begin then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end
+
+UserInputService.InputBegan:Connect(ToggleVisibility)
+
+print("Skrip Waypoint Runner siap. Tekan tombol ON untuk memulai.")
