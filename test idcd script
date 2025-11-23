@@ -1,307 +1,246 @@
--- MIYOSHI BLACK v14 - 1-6 Manual, 7+ Waypoint Terdekat, Scroll Menu
+-- // PREMIUM AUTOFARM BY MIYOSHI \\ --
+-- Key System
+local Key = "MIYOSHI2025"  -- Ganti kalau mau
+local CorrectKey = false
 
+local function CheckKey()
+    local input = readfile and readfile("MiyoshiKey.txt") or ""
+    if input == Key then
+        CorrectKey = true
+    else
+        repeat
+            local keyinput = game:GetService("UserInputService").InputBegan:Wait()
+            if keyinput.KeyCode == Enum.KeyCode.Insert then
+                local gui = Instance.new("ScreenGui", game.CoreGui)
+                local frame = Instance.new("Frame", gui)
+                frame.Size = UDim2.new(0, 300, 0, 150)
+                frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+                frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+                frame.BorderSizePixel = 0
+                
+                local text = Instance.new("TextBox", frame)
+                text.Size = UDim2.new(1, -20, 0, 50)
+                text.Position = UDim2.new(0, 10, 0, 20)
+                text.PlaceholderText = "Masukkan Key PREMIUM BY MIYOSHI"
+                text.Text = ""
+                text.BackgroundColor3 = Color3.fromRGB(40,40,40)
+                text.TextColor3 = Color3.new(1,1,1)
+                
+                text.FocusLost:Connect(function(enter)
+                    if enter and text.Text == Key then
+                        CorrectKey = true
+                        gui:Destroy()
+                        if writefile then writefile("MiyoshiKey.txt", Key) end
+                        game.StarterGui:SetCore("SendNotification", {Title = "Premium Activated"; Text = "BY MIYOSHI"; Duration = 5})
+                    end
+                end)
+            end
+            wait(0.1)
+        until CorrectKey
+    end
+end
+
+CheckKey()
+
+if not CorrectKey then return end
+
+-- Services
 local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
--- KOORDINAT MANUAL (dipakai untuk pengantaran 1-6)
-local ManualLocations = {
+-- Variables
+local AutoFarmEnabled = false
+local WalkSpeedEnabled = false
+local ESPEnabled = false
+local HideNameEnabled = false
+local DelayTime = 6
+
+local Coordinates = {
     Vector3.new(2879, 4, -863),
     Vector3.new(-5, 4, 25),
-    Vector3.new(3141, 5, -111),
-    Vector3.new(0, 0, 0),   -- tambahin sendiri kalau butuh lebih dari 3
-    Vector3.new(0, 0, 0),
-    Vector3.new(0, 0, 0)
+    Vector3.new(3141, 5, -111)
 }
 
-local autofarm = false
-local flying = false
-local noclip = false
-local espEnabled = false
-local customDelay = 6          -- delay yang benar-benar dipakai (bisa diubah di UI)
-local deliveryCount = 0
-local lastMoney = 0
-local profitPerMin = 0
+local CurrentIndex = 1
+local DeliveryCount = 0
+local TotalCash = 0
+local TotalCoins = 0
 
--- Profit per menit
-spawn(function()
-    lastMoney = getMoney()
-    while task.wait(10) do
-        local cur = getMoney()
-        profitPerMin = (cur - lastMoney) * 6
-        lastMoney = cur
-    end
-end)
+-- Premium UI (Bisa di-drag, hide/show, scrollable)
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "MiyoshiPremium"
 
-function getMoney()
-    if player:FindFirstChild("leaderstats") then
-        for _, v in player.leaderstats:GetChildren() do
-            if v:IsA("ValueBase") and (v.Name:lower():find("money") or v.Name:lower():find("cash") or v.Name:lower():find("coin")) then
-                return v.Value
-            end
-        end
-    end
-    return 0
-end
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 380, 0, 500)
+MainFrame.Position = UDim2.new(0, 50, 0.5, -250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = true
+MainFrame.Active = true
+MainFrame.Draggable = true
 
--- DETEKSI WAYPOINT TERDEKAT (super akurat)
-local function getNearestWaypoint()
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    local best = nil
-    local bestDist = 600
-    for _, obj in workspace:GetDescendants() do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local n = obj.Name:lower()
-            if n:find("way") or n:find("mark") or n:find("point") or n:find("target") or n:find("path") or n:find("deliver") then
-            or n:find("drop") or n:find("goal") then
-                local pos = obj:IsA("BasePart") and obj.Position or (obj:FindFirstChildWhichIsA("BasePart") and obj:FindFirstChildWhichIsA("BasePart").Position)
-                if pos then
-                    local dist = (hrp.Position - pos).Magnitude
-                    if dist < bestDist then
-                        bestDist = dist
-                        best = pos + Vector3.new(0,5,0)
-                    end
-                end
-            end
-        end
-    end
-    return best
-end
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1,0,0,40)
+Title.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+Title.Text = "PREMIUM BY MIYOSHI"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
 
--- NAMA "hide name by miyoshi"
-local function setMiyoshiName()
-    if character and character:FindFirstChild("Head") then
-        for _, v in character.Head:GetChildren() do
-            if v:IsA("BillboardGui") then
-                for _, lbl in v:GetDescendants() do
-                    if lbl:IsA("TextLabel") then
-                        lbl.Text = "hide name by miyoshi"
-                        lbl.TextColor3 = Color3.new(1,1,1)
-                        lbl.TextStrokeTransparency = 0
-                        lbl.TextStrokeColor3 = Color3.new(0,0,0)
-                        lbl.Font = Enum.Font.GothamBold
-                        lbl.TextSize = 20
-                    end
-                end
-            end
-        end
-    end
-end
-player.CharacterAdded:Connect(function(c) character = c task.wait(2) setMiyoshiName() end)
+local HideButton = Instance.new("TextButton", MainFrame)
+HideButton.Size = UDim2.new(0, 40, 0, 40)
+HideButton.Position = UDim2.new(1, -45, 0, 5)
+HideButton.BackgroundColor3 = Color3.new(1,1,1)
+HideButton.Text = "B"
+HideButton.TextColor3 = Color3.new(0,0,0)
+HideButton.Font = Enum.Font.GothamBold
+HideButton.TextSize = 20
+HideButton.TextScaled = true
 
--- HOLD E 5 DETIK
-local function holdE5()
-    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(5)
-    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-end
+local ScrollingFrame = Instance.new("ScrollingFrame", MainFrame)
+ScrollingFrame.Size = UDim2.new(1, -10, 1, -50)
+ScrollingFrame.Position = UDim2.new(0, 5, 0, 45)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.ScrollBarThickness = 8
 
--- TELEPORT
-local function tp(pos)
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root then root.CFrame = CFrame.new(pos) end
-end
-
--- AUTOFARM – LOGIC BARU SESUAI PERMINTAAN
-local function startAutoFarm()
-    if autofarm then return end
-    autofarm = true
-    deliveryCount = 0
-    task.spawn(function()
-        while autofarm and character and character:FindFirstChild("HumanoidRootPart") do
-            deliveryCount += 1
-            local target
-
-            if deliveryCount <= 6 then
-                -- 1 sampai 6 pakai koordinat manual
-                local idx = ((deliveryCount-1) % #ManualLocations) + 1
-                target = ManualLocations[idx]
-            else
-                -- ke-7 dan seterusnya pakai waypoint terdekat
-                target = getNearestWaypoint() or ManualLocations[1]  -- fallback kalau ga ada waypoint
-            end
-
-            tp(target)
-            task.wait(0.8)
-            holdE5()
-            task.wait(customDelay)   -- DELAY YANG KAMU SET DI UI
-        end
+-- Toggle Functions
+local function CreateButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 50)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Text = name
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 18
+    btn.Parent = ScrollingFrame
+    
+    btn.MouseButton1Click:Connect(function()
+        callback()
+        btn.BackgroundColor3 = btn.BackgroundColor3:Lerp(Color3.new(1,1,1), 0.3)
+        wait(0.1)
+        btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
     end)
 end
-local function stopAutoFarm() autofarm = false end
 
---------------------------------------------------
--- UI PERSEGI PANJANG + SCROLL KE BAWAH (SUPER RAPI)
---------------------------------------------------
+-- Hide/Show UI
+HideButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 
-local sg = Instance.new("ScreenGui", game.CoreGui)
-sg.ResetOnSpawn = false
+-- Features
+CreateButton("Toggle AutoFarm", function()
+    AutoFarmEnabled = not AutoFarmEnabled
+    game.StarterGui:SetCore("SendNotification", {Title="AutoFarm", Text= AutoFarmEnabled and "ON" or "OFF"})
+end)
 
-local openBtn = Instance.new("TextButton", sg)
-openBtn.Size = UDim2.new(0,60,0,60)
-openBtn.Position = UDim2.new(1,-75,1,-75)
-openBtn.BackgroundColor3 = Color3.new(1,1,1)
-openBtn.Text = "M"
-openBtn.TextSize = "36"
-openBtn.Font = Enum.Font.GothamBlack
-openBtn.Visible = false
-Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
+CreateButton("Toggle ESP", function()
+    ESPEnabled = not ESPEnabled
+    if ESPEnabled then LoadESP() end
+end)
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0,380,0,560)        -- tinggi banget biar scroll nyaman
-main.Position = UDim2.new(0.5,-190,0.5,-280)
-main.BackgroundColor3 = Color3.fromRGB(8,8,8)
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,16)
-local stroke = Instance.new("UIStroke", main)
-stroke.Color = Color3.fromRGB(255,215,0)
-stroke.Thickness = 4
+CreateButton("Toggle WalkSpeed (150)", function()
+    WalkSpeedEnabled = not WalkSpeedEnabled
+    LocalPlayer.Character.Humanoid.WalkSpeed = WalkSpeedEnabled and 150 or 16
+end)
 
--- ScrollingFrame
-local scroll = Instance.new("ScrollingFrame", main)
-scroll.Size = UDim2.new(1,0,1,-60)
-scroll.Position = UDim2.new(0,0,0,60)
-scroll.BackgroundTransparency = 1
-scroll.ScrollBarThickness = 10
-scroll.CanvasSize = UDim2.new(0,0,0,950)  -- cukup panjang
-
--- PREMIUM TAG
-local prem = Instance.new("TextLabel", main)
-prem.Size = UDim2.new(1,0,0,60)
-prem.BackgroundTransparency = 1
-prem.Text = "PREMIUM"
-prem.TextColor3 = Color3.fromRGB(255,215,0)
-prem.TextStrokeTransparency = 0
-prem.TextSize = 42
-prem.Font = Enum.Font.GothamBlack
-
--- Money + Profit
-local moneyL = Instance.new("TextLabel", scroll)
-moneyL.Size = UDim2.new(1,-20,0,40)
-moneyL.Position = UDim2.new(0,10,0,10)
-moneyL.BackgroundColor3 = Color3.fromRGB(0,50,0)
-moneyL.TextColor3 = Color3.fromRGB(0,255,120)
-moneyL.Text = "Money: 0$"
-Instance.new("UICorner", moneyL).CornerRadius = UDim.new(0,10)
-
-local profitL = Instance.new("TextLabel", scroll)
-profitL.Size = UDim2.new(1,-20,0,35)
-profitL.Position = UDim2.new(0,10,0,60)
-profitL.BackgroundColor3 = Color3.fromRGB(70,50,0)
-profitL.TextColor3 = Color3.fromRGB(255,255,100)
-profitL.Text = "Profit/min: 0$"
-Instance.new("UICorner", profitL).CornerRadius = UDim.new(0,10)
-
--- Delay Setter
-local delayBox = Instance.new("TextBox", scroll)
-delayBox.Size = UDim2.new(1,-20,0,50)
-delayBox.Position = UDim2.new(0,10,0,110)
-delayBox.BackgroundColor3 = Color3.fromRGB(90,0,90)
-delayBox.Text = "Delay: 6s (1-30)"
-delayBox.TextColor3 = Color3.new(1,1,1)
-delayBox.TextSize = 22
-delayBox.FocusLost:Connect(function(enter)
-    if enter then
-        local n = tonumber(delayBox.Text:match("%d+"))
-        if n and n>=1 and n<=30 then
-            customDelay = n
-            delayBox.Text = "Delay: "..n.."s"
-        else
-            delayBox.Text = "Delay: "..customDelay.."s (1-30)"
+CreateButton("Premium Hide Name", function()
+    HideNameEnabled = not HideNameEnabled
+    if HideNameEnabled and LocalPlayer.Character then
+        for _,v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BillboardGui") or v.Name == "OriginalName" then v:Destroy() end
+        end
+        if LocalPlayer.Character:FindFirstChild("Head") then
+            local name = LocalPlayer.Character.Head:FindFirstChildWhichIsA("BillboardGui")
+            if name then name:Destroy() end
         end
     end
 end)
-Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0,12)
 
--- Update money & profit
-spawn(function()
-    while task.wait(1) do
-        moneyL.Text = "Money: "..string.format("%,d", getMoney()).."$"
-        profitL.Text = "Profit/min: "..string.format("%,d", profitPerMin).."$"
+-- ESP Simple
+function LoadESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local esp = Instance.new("Highlight", player.Character)
+            esp.FillColor = Color3.fromRGB(255,0,0)
+            esp.OutlineColor = Color3.new(1,1,1)
+            esp.FillTransparency = 0.5
+        end
     end
-end)
-
--- Buttons (di dalam scroll)
-local yPos = 180
-local function addButton(text, color, callback)
-    local b = Instance.new("TextButton", scroll)
-    b.Size = UDim2.new(1,-20,0,55)
-    b.Position = UDim2.new(0,10,0,yPos)
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = Color3.new(1,1,1)
-    b.TextSize = 23
-    b.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,12)
-    b.MouseButton1Click:Connect(callback)
-    yPos = yPos + 65
+    Players.PlayerAdded:Connect(function(plr)
+        plr.CharacterAdded:Wait():WaitForChild("Head")
+        local hl = Instance.new("Highlight", plr.Character)
+        hl.FillColor = Color3.fromRGB(255,0,0)
+    end)
 end
 
-addButton("START AUTOFARM", Color3.fromRGB(0,200,0), startAutoFarm)
-addButton("STOP AUTOFARM", Color3.fromRGB(200,0,0), stopAutoFarm)
-addButton("TOGGLE FLY", Color3.fromRGB(0,140,255), function() flying = not flying if flying then startFly() end end)
-addButton("TOGGLE NOCLIP", Color3.fromRGB(255,165,0), function() noclip = not noclip end)
-addButton("TOGGLE ESP", Color3.fromRGB(200,0,255), function() espEnabled = not espEnabled end)
-addButton("MIYOSHI NAME", Color3.fromRGB(255,80,80), setMiyoshiName)
-
--- WalkSpeed
-local wsBox = Instance.new("TextBox", scroll)
-wsBox.Size = UDim2.new(1,-20,0,55)
-wsBox.Position = UDim2.new(0,10,0,yPos)
-wsBox.BackgroundColor3 = Color3.fromRGB(120,0,120)
-wsBox.Text = "WalkSpeed: 16"
-wsBox.TextColor3 = Color3.new(1,1,1)
-wsBox.FocusLost:Connect(function(e)
-    if e then
-        local n = tonumber(wsBox.Text:match("%d+"))
-        if n and n>=16 and n<=500 then
-            if character:FindFirstChild("Humanoid") then
-                character.Humanoid.WalkSpeed = n
-                wsBox.Text = "WalkSpeed: "..n
+-- Waypoint Detection (contoh: cari part bernama "DeliveryPoint" atau "Waypoint")
+local function FindWaypoint()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name:lower():find("delivery") or obj.Name:lower():find("waypoint") or obj.Name:lower():find("drop") then
+            if obj:IsA("BasePart") or obj:IsA("Model") and obj:FindFirstChildWhichIsA("BasePart") then
+                return obj.Position or obj.PrimaryPart.Position
             end
         end
     end
-end)
-Instance.new("UICorner", wsBox).CornerRadius = UDim.new(0,12)
+    return nil
+end
 
--- Hide button & draggable (tetap sama)
-local hidex = Instance.new("TextButton", main)
-hidex.Size = UDim2.new(0,40,0,40)
-hidex.Position = UDim2.new(1,-48,0,8)
-hidex.BackgroundColor3 = Color3.fromRGB(255,50,50)
-hidex.Text = "X"
-hidex.MouseButton1Click:Connect(function() main.Visible=false openBtn.Visible=true end)
-openBtn.MouseButton1Click:Connect(function() main.Visible=true openBtn.Visible=false end)
-
--- Drag
-local dragging, dragStart, startPos
-main.InputBegan:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = inp.Position
-        startPos = main.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(inp)
-    if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = inp.Position - dragStart
-        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-main.InputEnded:Connect(function() dragging = false end)
-
--- Noclip loop
-RunService.Stepped:Connect(function()
-    if noclip and character then
-        for _, part in character:GetDescendants() do
-            if part:IsA("BasePart") then part.CanCollide = false end
+-- AutoFarm Loop
+spawn(function()
+    while wait(0.5) do
+        if AutoFarmEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            
+            local target
+            if DeliveryCount >= 7 then
+                target = FindWaypoint()
+            end
+            
+            if not target then
+                target = Coordinates[CurrentIndex]
+            end
+            
+            hrp.CFrame = CFrame.new(target + Vector3.new(0, 5, 0))
+            wait(0.3)
+            
+            -- Hold E 5 detik
+            if game:GetService("VirtualInputManager") then
+                game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                wait(5)
+                game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
+            end
+            
+            wait(DelayTime)
+            
+            DeliveryCount = DeliveryCount + 1
+            TotalCash = TotalCash + 15000
+            TotalCoins = TotalCoins + 20
+            
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Delivery #"..DeliveryCount;
+                Text = "+15.000 Cash | +20 Coins\nTotal: "..TotalCash.." Cash";
+                Duration = 4
+            })
+            
+            CurrentIndex = CurrentIndex + 1
+            if CurrentIndex > #Coordinates then CurrentIndex = 1 end
         end
     end
 end)
 
-task.wait(3)
-setMiyoshiName()
-print("MIYOSHI BLACK v14 LOADED – 1-6 Manual, 7+ Waypoint, Scroll Menu, Delay Fix")
+-- Final UI Setup
+local function UpdateCanvas()
+    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #ScrollingFrame:GetChildren() * 55)
+end
+UpdateCanvas()
+
+game.StarterGui:SetCore("SendNotification", {
+    Title = "PREMIUM BY MIYOSHI";
+    Text = "Script berhasil di-inject! Enjoy premium features.";
+    Duration = 8;
+})
+
+print("PREMIUM BY MIYOSHI - Fully Loaded")
