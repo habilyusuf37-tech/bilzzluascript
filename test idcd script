@@ -1,160 +1,287 @@
--- MIYOSHI PREMIUM - BULATAN B KIRI ATAS + MENU 100% KELUAR (FINAL FIX)
+-- BILLZZ PREMIUM HUB V2 (COMPACT & ELEGANT)
+-- Key: premiumbillzz
 
-local CorrectKey = "MIYOSHI2025"
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local mouse = player:GetMouse()
 
--- REDEEM KEY
-local RedeemGui = Instance.new("ScreenGui", CoreGui)
-RedeemGui.ResetOnSpawn = false
+-- Redeem System
+local Redeemed = false
+local CorrectKey = "premiumbillzz"
 
-local Back = Instance.new("Frame", RedeemGui)
-Back.Size = UDim2.new(0,380,0,220)
-Back.Position = UDim2.new(0.5,-190,0.5,-110)
-Back.BackgroundColor3 = Color3.fromRGB(12,12,12)
-Instance.new("UICorner", Back).CornerRadius = UDim.new(0,16)
+if not Redeemed then
+    local rg = Instance.new("ScreenGui", game.CoreGui)
+    local rf = Instance.new("Frame", rg)
+    rf.Size = UDim2.new(0, 340, 0, 180)
+    rf.Position = UDim2.new(0.5, -170, 0.5, -90)
+    rf.BackgroundColor3 = Color3.fromRGB(12,12,20)
+    rf.BorderSizePixel = 0
+    Instance.new("UICorner", rf).CornerRadius = UDim.new(0,16)
+    local st = Instance.new("UIStroke", rf)
+    st.Color = Color3.fromRGB(0,180,255)
+    st.Thickness = 2.5
 
-local Title = Instance.new("TextLabel", Back)
-Title.Size = UDim2.new(1,0,0,50)
-Title.BackgroundTransparency = 1
-Title.Text = "PREMIUM BY MIYOSHI"
-Title.TextColor3 = Color3.fromRGB(255,50,150)
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 28
+    local title = Instance.new("TextLabel", rf)
+    title.Size = UDim2.new(1,0,0,40)
+    title.Text = "BILLZZ PREMIUM"
+    title.TextColor3 = Color3.fromRGB(0,220,255)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBlack
+    title.TextSize = 24
 
-local TB = Instance.new("TextBox", Back)
-TB.Size = UDim2.new(0.85,0,0,45)
-TB.Position = UDim2.new(0.075,0,0,70)
-TB.PlaceholderText = "Enter Key..."
-TB.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Instance.new("UICorner", TB).CornerRadius = UDim.new(0,10)
+    local box = Instance.new("TextBox", rf)
+    box.Size = UDim2.new(0.8,0,0,40)
+    box.Position = UDim2.new(0.1,0,0.3,0)
+    box.PlaceholderText = "Enter key..."
+    box.BackgroundColor3 = Color3.fromRGB(25,25,45)
+    box.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0,10)
 
-local RedeemBtn = Instance.new("TextButton", Back)
-RedeemBtn.Size = UDim2.new(0.85,0,0,48)
-RedeemBtn.Position = UDim2.new(0.075,0,0,130)
-RedeemBtn.BackgroundColor3 = Color3.fromRGB(255,50,150)
-RedeemBtn.Text = "REDEEM"
-RedeemBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", RedeemBtn).CornerRadius = UDim.new(0,10)
+    local btn = Instance.new("TextButton", rf)
+    btn.Size = UDim2.new(0.8,0,0,40)
+    btn.Position = UDim2.new(0.1,0,0.65,0)
+    btn.Text = "REDEEM"
+    btn.BackgroundColor3 = Color3.fromRGB(0,160,255)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
 
-RedeemBtn.MouseButton1Click:Connect(function()
-    if TB.Text ~= CorrectKey then
-        TB.PlaceholderText = "Key Salah!"
-        TB.Text = ""
-        return
-    end
-
-    RedeemGui:Destroy()
-
-    -- SATU GUI SAJA + ZINDEX TINGGI = TIDAK BUG LAGI
-    local GUI = Instance.new("ScreenGui")
-    GUI.Parent = CoreGui
-    GUI.ResetOnSpawn = false
-    GUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    -- BULATAN B DI KIRI ATAS
-    local BBtn = Instance.new("TextButton", GUI)
-    BBtn.Size = UDim2.new(0,70,0,70)
-    BBtn.Position = UDim2.new(0,15,0,15)   -- pojok kiri atas
-    BBtn.BackgroundColor3 = Color3.new(1,1,1)
-    BBtn.Text = "B"
-    BBtn.TextColor3 = Color3.new(0,0,0)
-    BBtn.Font = Enum.Font.GothamBlack
-    BBtn.TextSize = 50
-    BBtn.TextScaled = true
-    BBtn.ZIndex = 9999
-    Instance.new("UICorner", BBtn).CornerRadius = UDim.new(1,0)
-
-    local Glow = Instance.new("UIStroke", BBtn)
-    Glow.Color = Color3.fromRGB(255,50,150)
-    Glow.Thickness = 6
-
-    -- MENU MINI PREMIUM
-    local Menu = Instance.new("Frame", GUI)
-    Menu.Size = UDim2.new(0,300,0,460)
-    Menu.Position = UDim2.new(0,100,0,15)
-    Menu.BackgroundColor3 = Color3.fromRGB(18,18,18)
-    Menu.Active = true
-    Menu.Draggable = true
-    Menu.Visible = false
-    Menu.ZIndex = 9998
-    Instance.new("UICorner", Menu).CornerRadius = UDim.new(0,18)
-
-    local Grad = Instance.new("UIGradient", Menu)
-    Grad.Color = ColorSequence.new{Color3.fromRGB(40,10,60), Color3.fromRGB(10,10,25)}
-    Grad.Rotation = 90
-
-    local Stroke = Instance.new("UIStroke", Menu)
-    Stroke.Color = Color3.fromRGB(255,50,150)
-    Stroke.Thickness = 2
-    Stroke.Transparency = 0.3
-
-    local TitleMenu = Instance.new("TextLabel", Menu)
-    TitleMenu.Size = UDim2.new(1,0,0,50)
-    TitleMenu.BackgroundTransparency = 1
-    TitleMenu.Text = "MIYOSHI"
-    TitleMenu.TextColor3 = Color3.fromRGB(255,80,180)
-    TitleMenu.Font = Enum.Font.GothamBlack
-    TitleMenu.TextSize = 26
-    TitleMenu.ZIndex = 9999
-
-    -- TOMBOL AUTOFARM
-    local ToggleBtn = Instance.new("TextButton", Menu)
-    ToggleBtn.Size = UDim2.new(0,260,0,60)
-    ToggleBtn.Position = UDim2.new(0,20,0,70)
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(255,50,150)
-    ToggleBtn.Text = "AutoFarm: OFF"
-    ToggleBtn.TextColor3 = Color3.new(1,1,1)
-    ToggleBtn.Font = Enum.Font.GothamBold
-    ToggleBtn.TextSize = 24
-    ToggleBtn.ZIndex = 9999
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0,12)
-
-    -- KLIK B = MUNCUL MENU
-    BBtn.MouseButton1Click:Connect(function()
-        Menu.Visible = not Menu.Visible
-    end)
-
-    -- AUTOFARM KOORDINAT ONLY
-    local AutoFarm = false
-    local Coords = {Vector3.new(2879,4,-863), Vector3.new(-5,4,25), Vector3.new(3141,5,-111)}
-    local idx = 1
-    local deliveries = 0
-
-    ToggleBtn.MouseButton1Click:Connect(function()
-        AutoFarm = not AutoFarm
-        ToggleBtn.Text = "AutoFarm: "..(AutoFarm and "ON" or "OFF")
-    end)
-
-    spawn(function()
-        while task.wait(0.8) do
-            if AutoFarm and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = LocalPlayer.Character.HumanoidRootPart
-                local target = Coords[idx]
-
-                local tween = TweenService:Create(hrp, TweenInfo.new(0.6), {CFrame = CFrame.new(target + Vector3.new(0,6,0))})
-                hrp.Anchored = true
-                tween:Play()
-                tween.Completed:Wait()
-                hrp.Anchored = false
-
-                task.wait(0.7)
-                for _, p in workspace:GetDescendants() do
-                    if p:IsA("ProximityPrompt") and (hrp.Position - p.Parent.Position).Magnitude < 30 then
-                        fireproximityprompt(p, 5)
-                        break
-                    end
-                end
-
-                task.wait(6)
-                deliveries += 1
-                idx = idx % 3 + 1
-                game.StarterGui:SetCore("SendNotification", {Title="Delivery #"..deliveries, Text="+15.000 Cash | +20 Coins", Duration=4})
-            end
+    btn.MouseButton1Click:Connect(function()
+        if box.Text:lower() == CorrectKey then
+            Redeemed = true
+            rg:Destroy()
+        else
+            box.Text = ""
+            box.PlaceholderText = "Wrong key!"
+            task.wait(1.5)
+            box.PlaceholderText = "Enter key..."
         end
     end)
 
-    game.StarterGui:SetCore("SendNotification",{Title="MIYOSHI",Text="Bulatan B di kiri atas — klik untuk buka menu!",Duration=8})
+    repeat task.wait() until Redeemed
+end
+
+-- Notification
+spawn(function()
+    local n = Instance.new("ScreenGui", game.CoreGui)
+    local f = Instance.new("Frame", n)
+    f.Size = UDim2.new(0,260,0,70)
+    f.Position = UDim2.new(0.5,-130,-0.1,0)
+    f.BackgroundColor3 = Color3.fromRGB(0,170,255)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,12)
+    local t = Instance.new("TextLabel", f)
+    t.Size = UDim2.new(1,0,1,0)
+    t.BackgroundTransparency = 1
+    t.Text = "Premium Activated!"
+    t.TextColor3 = Color3.new(1,1,1)
+    t.Font = Enum.Font.GothamBlack
+    t.TextSize = 20
+    TweenService:Create(f, TweenInfo.new(0.6), {Position = UDim2.new(0.5,-130,0.02,0)}):Play()
+    task.wait(2)
+    TweenService:Create(f, TweenInfo.new(0.6), {Position = UDim2.new(0.5,-130,-0.1,0)}):Play()
+    task.wait(0.8)
+    n:Destroy()
 end)
+
+-- MAIN COMPACT GUI (320x420)
+local gui = Instance.new("ScreenGui", game.CoreGui)
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 320, 0, 420)  -- Ukuran pas & compact
+main.Position = UDim2.new(0, 30, 0.5, -210)
+main.BackgroundColor3 = Color3.fromRGB(15,15,28)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,18)
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(0,190,255)
+stroke.Thickness = 2
+stroke.Transparency = 0.5
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,45)
+title.Text = "BILLZZ HUB"
+title.TextColor3 = Color3.fromRGB(0,220,255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 22
+
+-- Close & Minimize
+local close = Instance.new("TextButton", main)
+close.Size = UDim2.new(0,32,0,32)
+close.Position = UDim2.new(1,-40,0,6)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(220,50,50)
+Instance.new("UICorner", close)
+close.MouseButton1Click:Connect(function() gui:Destroy() end)
+
+local mini = Instance.new("TextButton", main)
+mini.Size = UDim2.new(0,32,0,32)
+mini.Position = UDim2.new(1,-78,0,6)
+mini.Text = "−"
+mini.BackgroundColor3 = Color3.fromRGB(255,170,0)
+Instance.new("UICorner", mini)
+local minitoggle = false
+mini.MouseButton1Click:Connect(function()
+    minitoggle = not minitoggle
+    main.Size = minitoggle and UDim2.new(0,320,0,45) or UDim2.new(0,320,0,420)
+end)
+
+-- Scrolling Frame
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1,-20,1,-65)
+scroll.Position = UDim2.new(0,10,0,55)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 5
+scroll.ScrollBarImageColor3 = Color3.fromRGB(0,180,255)
+scroll.CanvasSize = UDim2.new(0,0,0,680)
+local list = Instance.new("UIListLayout", scroll)
+list.Padding = UDim.new(0,10)
+
+-- Toggle & Slider Function (singkat & clean)
+local function toggle(name, callback)
+    local f = Instance.new("Frame", scroll)
+    f.Size = UDim2.new(1,0,0,44)
+    f.BackgroundColor3 = Color3.fromRGB(28,28,50)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
+    
+    local txt = Instance.new("TextLabel", f)
+    txt.Size = UDim2.new(0.65,0,1,0)
+    txt.Position = UDim2.new(0,12,0,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = name
+    txt.TextColor3 = Color3.new(1,1,1)
+    txt.TextXAlignment = Enum.TextXAlignment.Left
+    txt.Font = Enum.Font.GothamSemibold
+    txt.TextSize = 16
+
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(0,55,0,28)
+    btn.Position = UDim2.new(1,-68,0.5,-14)
+    btn.Text = "OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(90,0,0)
+    Instance.new("UICorner", btn)
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(0,160,0) or Color3.fromRGB(90,0,0)
+        callback(state)
+    end)
+end
+
+local function slider(name, min, max, default, callback)
+    local f = Instance.new("Frame", scroll)
+    f.Size = UDim2.new(1,0,0,60)
+    f.BackgroundColor3 = Color3.fromRGB(28,28,50)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
+    
+    local label = Instance.new("TextLabel", f)
+    label.Size = UDim2.new(1,0,0,28)
+    label.Text = name .. ": " .. default
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 15
+
+    local bar = Instance.new("Frame", f)
+    bar.Size = UDim2.new(0.9,0,0,8)
+    bar.Position = UDim2.new(0.05,0,0.6,0)
+    bar.BackgroundColor3 = Color3.fromRGB(50,50,70)
+    Instance.new("UICorner", bar)
+    
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((default-min)/(max-min),0,1,0)
+    fill.BackgroundColor3 = Color3.fromRGB(0,190,255)
+    Instance.new("UICorner", fill)
+    
+    local dragging = false
+    bar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end end)
+    bar.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local p = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            local v = math.floor(min + (max-min)*p)
+            fill.Size = UDim2.new(p,0,1,0)
+            label.Text = name .. ": " .. v
+            callback(v)
+        end
+    end)
+end
+
+-- Features
+local autofarm = false
+local fly = false
+local noclip = false
+local walkspeed = 16
+local jumppower = 50
+local delayTime = 8
+local flySpeed = 70
+
+toggle("Auto Farm", function(s) autofarm = s if s then startAutoFarm() end end)
+toggle("Fly (Space)", function(s) fly = s end)
+toggle("Noclip (N)", function(s) noclip = s end)
+slider("WalkSpeed", 16, 200, 50, function(v) walkspeed = v humanoid.WalkSpeed = v end)
+slider("JumpPower", 50, 300, 100, function(v) jumppower = v humanoid.JumpPower = v end)
+slider("Farm Delay", 5, 20, 8, function(v) delayTime = v end)
+slider("Fly Speed", 30, 150, 70, function(v) flySpeed = v end)
+
+-- Premium Circle (kecil & elegan)
+local circle = Instance.new("ImageLabel", gui)
+circle.Size = UDim2.new(0,90,0,90)
+circle.Position = UDim2.new(1,-110,0,10)
+circle.BackgroundTransparency = 1
+circle.Image = "rbxassetid://4483345998"
+circle.ImageColor3 = Color3.fromRGB(0,200,255)
+local cstroke = Instance.new("UIStroke", circle)
+cstroke.Thickness = 3
+cstroke.Color = Color3.fromRGB(0,255,255)
+cstroke.Transparency = 0.6
+
+-- Fly & Noclip Logic (sama tapi lebih ringan)
+mouse.KeyDown:Connect(function(k)
+    if fly and k == " " then
+        local bv = Instance.new("BodyVelocity", character:WaitForChild("HumanoidRootPart"))
+        bv.Velocity = Vector3.new(0, flySpeed, 0)
+        bv.MaxForce = Vector3.new(0,9e9,0)
+        task.wait(0.15)
+        bv:Destroy()
+    elseif k == "n" then
+        noclip = not noclip
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if noclip and character then
+        for _, v in pairs(character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
+    end
+end)
+
+-- AutoFarm (optimized)
+local Locations = {Vector3.new(2879,4,-863), Vector3.new(-5,4,25), Vector3.new(3141,5,-111)}
+local function teleportTo(p) character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(p + Vector3.new(0,4,0)) end
+local function holdE() VirtualInputManager:SendKeyEvent(true,Enum.KeyCode.E,false,game) task.wait(7) VirtualInputManager:SendKeyEvent(false,Enum.KeyCode.E,false,game) end
+
+function startAutoFarm()
+    if autofarm then return end
+    autofarm = true
+    task.spawn(function()
+        local i = 1
+        while autofarm do
+            teleportTo(Locations[i])
+            task.wait(0.6)
+            holdE()
+            task.wait(delayTime)
+            i = i % #Locations + 1
+        end
+    end)
+end
+
+print("BILLZZ PREMIUM HUB LOADED - COMPACT VERSION")
