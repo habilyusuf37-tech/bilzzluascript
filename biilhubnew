@@ -1,103 +1,146 @@
---🔵 Floating Button (Bulatan B)
-local ScreenGui = Instance.new("ScreenGui")
-local OpenButton = Instance.new("TextButton")
+-- 🔰 Bill Hub - Auto Farm Kurir LEVEL PRO
+-- 🔹 UI Simpel + Bulatan B + Save Position + Progress + Notif + Auto Repeat
 
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-OpenButton.Parent = ScreenGui
-OpenButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-OpenButton.Text = "B"
-OpenButton.Size = UDim2.new(0, 50, 0, 50)
-OpenButton.Position = UDim2.new(0.05, 0, 0.4, 0)
-OpenButton.TextScaled = true
-OpenButton.Font = Enum.Font.GothamBold
-OpenButton.TextColor3 = Color3.fromRGB(255,255,255)
-OpenButton.Visible = true
-OpenButton.Active = true
-OpenButton.Draggable = true
-
--- Main UI
-local MainUI = Instance.new("Frame")
-MainUI.Parent = ScreenGui
-MainUI.BackgroundColor3 = Color3.fromRGB(25,25,25)
-MainUI.Size = UDim2.new(0, 430, 0, 300)
-MainUI.Position = UDim2.new(0.5, -215, 0.5, -150)
-MainUI.Visible = false
-
-local Title = Instance.new("TextLabel", MainUI)
-Title.Text = "Bill Hub"
-Title.Size = UDim2.new(1,0,0,40)
-Title.TextScaled = true
-Title.Font = Enum.Font.GothamBold
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-
-local CloseButton = Instance.new("TextButton", MainUI)
-CloseButton.Text = "X"
-CloseButton.Size = UDim2.new(0,35,0,35)
-CloseButton.Position = UDim2.new(1,-40,0,5)
-CloseButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
-CloseButton.TextColor3 = Color3.fromRGB(255,255,255)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextScaled = true
-
--- Auto Farm Kurir Button (semua sudah digabung)
-local AutoFarmButton = Instance.new("TextButton", MainUI)
-AutoFarmButton.Text = "Auto Farm Kurir: OFF"
-AutoFarmButton.Size = UDim2.new(0,350,0,70)
-AutoFarmButton.Position = UDim2.new(0.5, -175, 0.35, 0)
-AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
-AutoFarmButton.TextColor3 = Color3.fromRGB(255,255,255)
-AutoFarmButton.TextScaled = true
-AutoFarmButton.Font = Enum.Font.GothamBold
-
--- Keterangan delay visual
-local DelayLabel = Instance.new("TextLabel", MainUI)
-DelayLabel.Text = "Delay Sistem: 18 detik (Visual Kontrol Farm)"
-DelayLabel.Size = UDim2.new(0,350,0,30)
-DelayLabel.Position = UDim2.new(0.5, -175, 0.70, 0)
-DelayLabel.BackgroundTransparency = 1
-DelayLabel.TextColor3 = Color3.fromRGB(200,200,200)
-DelayLabel.Font = Enum.Font.Gotham
-DelayLabel.TextScaled = true
-
--- Anti AFK (UI only)
-local AntiAfkLabel = Instance.new("TextLabel", MainUI)
-AntiAfkLabel.Text = "Anti-AFK Aktif (Visual)"
-AntiAfkLabel.Size = UDim2.new(0,350,0,25)
-AntiAfkLabel.Position = UDim2.new(0.5, -175, 0.83, 0)
-AntiAfkLabel.BackgroundTransparency = 1
-AntiAfkLabel.TextColor3 = Color3.fromRGB(0,255,0)
-AntiAfkLabel.Font = Enum.Font.Gotham
-AntiAfkLabel.TextScaled = true
-
--- Logic Visual Auto Farm Kurir
-local AutoFarmEnabled = false
-AutoFarmButton.MouseButton1Click:Connect(function()
-    AutoFarmEnabled = not AutoFarmEnabled
-    if AutoFarmEnabled then
-        AutoFarmButton.Text = "Auto Farm Kurir: ON"
-        AutoFarmButton.BackgroundColor3 = Color3.fromRGB(0,150,0)
-
-        -- Visual Simulasi Alur
-        warn("START: Ambil Job di Waypoint 1 (Sekali)")
-        task.wait(2)
-
-        warn("GO FARM: Loop Waypoint 2–6 (Auto F aktif)")
-        task.wait(2)
-
-        warn("FARMING LOOP BERJALAN... (Delay 18 Detik)")
-    else
-        AutoFarmButton.Text = "Auto Farm Kurir: OFF"
-        AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
-        
-        warn("Auto Farm Kurir DIMATIKAN")
+-- 🛡️ Anti AFK
+spawn(function()
+    while task.wait(60) do
+        game:GetService("VirtualUser"):CaptureController()
+        game:GetService("VirtualUser"):ClickButton2(Vector2.new())
     end
 end)
 
--- Open / Close UI
-OpenButton.MouseButton1Click:Connect(function()
-    MainUI.Visible = not MainUI.Visible
+local plr = game.Players.LocalPlayer
+local hum = plr.Character:WaitForChild("HumanoidRootPart")
+
+-- 💠 Waypoints
+local Waypoints = {
+    Vector3.new(10, 2, 50),   -- 1: Ambil Job
+    Vector3.new(80, 2, -20),  -- 2
+    Vector3.new(120, 2, -50), -- 3
+    Vector3.new(160, 2, -30), -- 4
+    Vector3.new(200, 2, 10),  -- 5
+    Vector3.new(230, 2, 40)   -- 6
+}
+
+local delayTime = 18
+getgenv().AutoFarmKurir = false
+
+-- 🌀 Teleport dan Tekan F
+function TeleportTo(pos)
+    hum.CFrame = CFrame.new(pos)
+end
+
+function PressF()
+    game:GetService("VirtualInputManager"):SendKeyEvent(true, "F", false, game)
+end
+
+-- 🟢 AutoFarm Kurir (Pelaksanaan semua fitur)
+spawn(function()
+    while task.wait(1) do
+        if getgenv().AutoFarmKurir then
+            
+            -- 🔹 Ambil Job hanya sekali di awal (Waypoint 1)
+            TeleportTo(Waypoints[1])
+            wait(2)
+            PressF()
+            wait(delayTime)
+
+            -- 🔁 Mulai Loop Waypoint 2–6 (Auto repeat tanpa kembali ke 1)
+            while getgenv().AutoFarmKurir do
+                for i = 2, #Waypoints do
+                    if not getgenv().AutoFarmKurir then break end
+
+                    -- Progress Status
+                    ProgressLabel.Text = "Mengantar ke Tujuan: " .. (i-1) .. "/" .. (#Waypoints-1)
+
+                    TeleportTo(Waypoints[i])
+                    wait(2)
+                    PressF()
+                    wait(delayTime)
+                end
+
+                -- Notifikasi Job selesai
+                ProgressLabel.Text = "Job Selesai! Mengulang..."
+                wait(3)
+            end
+        end
+    end
 end)
-CloseButton.MouseButton1Click:Connect(function()
-    MainUI.Visible = false
+
+----------------------------------------------------------------
+-- 🎯 UI LEVEL PRO (SIMPLES, SAVE POSISI, BULATAN B)
+----------------------------------------------------------------
+
+-- Load save posisi UI (jika ada)
+local uis = game:GetService("UserInputService")
+local screenGui = Instance.new("ScreenGui", plr.PlayerGui)
+
+local savedPos = plr:FindFirstChild("UIPositionValue")
+if not savedPos then
+    savedPos = Instance.new("Vector3Value")
+    savedPos.Name = "UIPositionValue"
+    savedPos.Parent = plr
+    savedPos.Value = Vector3.new(0.3, 0.25, 0)
+end
+
+-- Bulatan B pembuka UI
+local circle = Instance.new("TextButton", screenGui)
+circle.Size = UDim2.new(0,50,0,50)
+circle.Position = UDim2.new(0.02,0,0.75,0)
+circle.Text = "B"
+circle.BackgroundColor3 = Color3.fromRGB(150,0,0)
+circle.TextColor3 = Color3.fromRGB(255,255,255)
+circle.Font = Enum.Font.GothamBold
+circle.TextScaled = true
+
+local main = Instance.new("Frame", screenGui)
+main.Size = UDim2.new(0,520,0,280)
+main.Position = UDim2.new(savedPos.Value.X, 0, savedPos.Value.Y, 0)
+main.BackgroundColor3 = Color3.fromRGB(30,30,30)
+main.Visible = false
+main.Active = true
+main.Draggable = true
+
+-- Save posisi UI saat dipindah
+main:GetPropertyChangedSignal("Position"):Connect(function()
+    savedPos.Value = Vector3.new(main.Position.X.Scale, main.Position.Y.Scale, 0)
 end)
+
+circle.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
+
+-- Title
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,50)
+title.Text = "Bill Hub - Auto Farm Kurir"
+title.BackgroundColor3 = Color3.fromRGB(40,40,40)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- 🔻 Tombol utama Auto Farm Kurir
+local btn = Instance.new("TextButton", main)
+btn.Size = UDim2.new(0.85,0,0,80)
+btn.Position = UDim2.new(0.075,0,0.35,0)
+btn.BackgroundColor3 = Color3.fromRGB(150,0,0)
+btn.Font = Enum.Font.GothamBold
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.TextScaled = true
+btn.Text = "Auto Farm Kurir: OFF"
+
+btn.MouseButton1Click:Connect(function()
+    getgenv().AutoFarmKurir = not getgenv().AutoFarmKurir
+    btn.Text = "Auto Farm Kurir: " .. (getgenv().AutoFarmKurir and "ON" or "OFF")
+    btn.BackgroundColor3 = getgenv().AutoFarmKurir and Color3.fromRGB(0,120,0) or Color3.fromRGB(150,0,0)
+end)
+
+-- 🔹 Progress Status Label
+ProgressLabel = Instance.new("TextLabel", main)
+ProgressLabel.Size = UDim2.new(1,0,0,40)
+ProgressLabel.Position = UDim2.new(0,0,0.75,0)
+ProgressLabel.BackgroundColor3 = Color3.fromRGB(40,40,40)
+ProgressLabel.Text = "Status: Idle"
+ProgressLabel.Font = Enum.Font.Gotham
+ProgressLabel.TextScaled = true
+ProgressLabel.TextColor3 = Color3.fromRGB(200,200,200)
