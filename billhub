@@ -1,0 +1,96 @@
+-- Instances
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local CloseButton = Instance.new("TextButton")
+local Sidebar = Instance.new("Frame")
+local MainButton = Instance.new("TextButton")
+local AutoTeleportButton = Instance.new("TextButton")
+local AutoFarmButton = Instance.new("TextButton")
+local AutoFButton = Instance.new("TextButton")
+
+-- Main Frame
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 420, 0, 260)
+MainFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- Title (BILL HUB)
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.Text = "Bill Hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+
+-- Close Button
+CloseButton.Parent = MainFrame
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.Text = "X"
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Sidebar
+Sidebar.Parent = MainFrame
+Sidebar.Size = UDim2.new(0, 110, 1, -40)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+-- Main Button
+MainButton.Parent = Sidebar
+MainButton.Size = UDim2.new(1, -10, 0, 40)
+MainButton.Position = UDim2.new(0, 5, 0, 10)
+MainButton.Text = "Main"
+MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Auto Teleport
+AutoTeleportButton.Parent = MainFrame
+AutoTeleportButton.Size = UDim2.new(0, 250, 0, 40)
+AutoTeleportButton.Position = UDim2.new(0, 140, 0, 60)
+AutoTeleportButton.Text = "Auto Teleport: OFF"
+AutoTeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoTeleportButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+
+local teleportOn = false
+AutoTeleportButton.MouseButton1Click:Connect(function()
+    teleportOn = not teleportOn
+    AutoTeleportButton.Text = teleportOn and "Auto Teleport: ON" or "Auto Teleport: OFF"
+    AutoTeleportButton.BackgroundColor3 = teleportOn and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+end)
+
+-- Auto Farm
+AutoFarmButton.Parent = MainFrame
+AutoFarmButton.Size = UDim2.new(0, 250, 0, 40)
+AutoFarmButton.Position = UDim2.new(0, 140, 0, 110)
+AutoFarmButton.Text = "Auto Farm: OFF"
+AutoFarmButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+AutoFarmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local farmOn = false
+AutoFarmButton.MouseButton1Click:Connect(function()
+    farmOn = not farmOn
+    AutoFarmButton.Text = farmOn and "Auto Farm: ON" or "Auto Farm: OFF"
+    AutoFarmButton.BackgroundColor3 = farmOn and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+end)
+
+-- Auto Pick/Press F (ambil item)
+AutoFButton.Parent = MainFrame
+AutoFButton.Size = UDim2.new(0, 250, 0, 40)
+AutoFButton.Position = UDim2.new(0, 140, 0, 160)
+AutoFButton.Text = "Auto F (Ambil Item): OFF"
+AutoFButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+AutoFButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local autoF = false
+AutoFButton.MouseButton1Click:Connect(function()
+    autoF = not autoF
+    AutoFButton.Text = autoF and "Auto F (Ambil Item): ON" or "Auto F (Ambil Item): OFF"
+    AutoFButton.BackgroundColor3 = autoF and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+end)
