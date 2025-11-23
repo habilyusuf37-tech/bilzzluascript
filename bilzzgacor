@@ -1,0 +1,18 @@
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+local text = Instance.new("TextLabel", screenGui)
+
+text.Size = UDim2.new(0, 300, 0, 50)
+text.Position = UDim2.new(0, 20, 0, 20)
+text.BackgroundTransparency = 1
+text.TextColor3 = Color3.fromRGB(255, 255, 255)
+text.TextScaled = true
+
+while true do
+    local pos = root.Position
+    text.Text = "X: "..math.floor(pos.X).." | Y: "..math.floor(pos.Y).." | Z: "..math.floor(pos.Z)
+    task.wait(0.2)
+end
