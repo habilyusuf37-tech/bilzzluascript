@@ -23,18 +23,17 @@ toggleButton.Active = true
 toggleButton.ZIndex = 10
 toggleButton.Parent = screenGui
 
-------------------------------------------------
--- FRAME MENU UTAMA AUTO FARM KURIR (TERSEMBUNYI)
-------------------------------------------------
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 360)
-mainFrame.Position = UDim2.new(0, 120, 0.5, -180)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
+---------------------------------------------
+-- FUNGSI AUTO FARM KURIR (KOORDINAT ASLI)
+---------------------------------------------
+local waypoints = {
+    [1] = Vector3.new(-5111, 5, -3760),     -- Ambil Job
+    [2] = Vector3.new(-6795, 3, -444),      -- Lokasi 1
+    [3] = Vector3.new(-17053, 104, 6567),   -- Lokasi 2
+    [4] = Vector3.new(-6741, 3, 2975),      -- Lokasi 3
+    [5] = Vector3.new(-8777, 3, 644),       -- Lokasi 4
+    [6] = Vector3.new(-8382, 2, -3822),     -- Lokasi 5
+}
 
 -- TITLE BAR
 local titleBar = Instance.new("TextLabel")
