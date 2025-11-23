@@ -1,11 +1,10 @@
--- PREMIUM BY MIYOSHI - MINI PREMIUM EDITION (300x460)
+-- PREMIUM BY MIYOSHI - KOORDINAT ONLY + MINI PREMIUM (FINAL 2025)
 
 local CorrectKey = "MIYOSHI2025"
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 
 -- ====================== REDEEM KEY ======================
 local RedeemGui = Instance.new("ScreenGui", CoreGui)
@@ -45,31 +44,24 @@ Instance.new("UICorner", RedeemBtn).CornerRadius = UDim.new(0,10)
 RedeemBtn.MouseButton1Click:Connect(function()
     if TB.Text == CorrectKey then
         RedeemGui:Destroy()
-        game.StarterGui:SetCore("SendNotification",{Title="MIYOSHI",Text="Mini Premium Activated!",Duration=5})
+        game.StarterGui:SetCore("SendNotification",{Title="MIYOSHI",Text="Koordinat Only Activated!",Duration=5})
 
         -- ========================= MINI PREMIUM UI =========================
         local ScreenGui = Instance.new("ScreenGui", CoreGui)
 
-        -- Main Frame Kecil Premium
         local Main = Instance.new("Frame", ScreenGui)
-        Main.Size = UDim2.new(0, 300, 0, 460)  -- KECIL & ELEGAN
+        Main.Size = UDim2.new(0, 300, 0, 460)
         Main.Position = UDim2.new(0, 30, 0.5, -230)
         Main.BackgroundColor3 = Color3.fromRGB(18,18,18)
-        Main.BorderSizePixel = 0
         Main.Active = true
         Main.Draggable = true
         Main.Visible = false
         Main.ClipsDescendants = true
+        Instance.new("UICorner", Main).CornerRadius = UDim.new(0,18)
 
-        local Corner = Instance.new("UICorner", Main)
-        Corner.CornerRadius = UDim.new(0,18)
-
-        -- Gradient + Glow Premium
+        -- Premium look
         local Gradient = Instance.new("UIGradient", Main)
-        Gradient.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(40,10,60)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(10,10,25))
-        }
+        Gradient.Color = ColorSequence.new{Color3.fromRGB(40,10,60), Color3.fromRGB(10,10,25)}
         Gradient.Rotation = 90
 
         local Stroke = Instance.new("UIStroke", Main)
@@ -77,16 +69,15 @@ RedeemBtn.MouseButton1Click:Connect(function()
         Stroke.Thickness = 2
         Stroke.Transparency = 0.3
 
-        -- Title Premium
         local Title = Instance.new("TextLabel", Main)
         Title.Size = UDim2.new(1,0,0,50)
         Title.BackgroundTransparency = 1
         Title.Text = "MIYOSHI"
         Title.TextColor3 = Color3.fromRGB(255,80,180)
         Title.Font = Enum.Font.GothamBlack
-        Title.TextSize = 24
+        Title.TextSize = 26
 
-        -- Bulatan B Premium
+        -- Bulatan B
         local BBtn = Instance.new("TextButton", ScreenGui)
         BBtn.Size = UDim2.new(0,58,0,58)
         BBtn.Position = UDim2.new(1,-75,0,12)
@@ -105,7 +96,6 @@ RedeemBtn.MouseButton1Click:Connect(function()
             Main.Visible = not Main.Visible
         end)
 
-        -- Scrolling + Buttons
         local Scroll = Instance.new("ScrollingFrame", Main)
         Scroll.Size = UDim2.new(1,-20,1,-65)
         Scroll.Position = UDim2.new(0,10,0,55)
@@ -136,13 +126,20 @@ RedeemBtn.MouseButton1Click:Connect(function()
             end)
         end
 
-        -- Fitur
-        local AutoFarm = false
-        local Coords = {Vector3.new(2879,4,-863), Vector3.new(-5,4,25), Vector3.new(3141,5,-111)}
+        -- Koordinat kamu
+        local Coords = {
+            Vector3.new(2879, 4, -863),
+            Vector3.new(-5, 4, 25),
+            Vector3.new(3141, 5, -111)
+        }
         local idx = 1
         local deliveries = 0
+        local AutoFarm = false
 
-        Btn("AutoFarm", function() AutoFarm = not AutoFarm end)
+        Btn("Toggle AutoFarm", function() 
+            AutoFarm = not AutoFarm
+            game.StarterGui:SetCore("SendNotification",{Title="AutoFarm",Text=AutoFarm and "ON" or "OFF",Duration=3})
+        end)
         Btn("ESP", function()
             for _, p in Players:GetPlayers() do
                 if p ~= Players.LocalPlayer and p.Character then
@@ -159,32 +156,24 @@ RedeemBtn.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- AUTOFARM + RADIUS 6000 + TELEPORT TWEEN HALUS
+        -- AUTOFARM 100% KOORDINAT ONLY
         spawn(function()
             while task.wait(0.8) do
                 if AutoFarm and Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = Players.LocalPlayer.Character.HumanoidRootPart
                     local target = Coords[idx]
 
-                    if deliveries >= 7 then
-                        for _, obj in Workspace:GetDescendants() do
-                            if obj:IsA("BasePart") and (obj.Name:lower():find("delivery") or obj.Name:lower():find("waypoint") or obj.Name:lower():find("drop")) then
-                                if (hrp.Position - obj.Position).Magnitude <= 6000 then
-                                    target = obj.Position
-                                    break
-                                end
-                            end
-                        end
-                    end
-
-                    local tween = TweenService:Create(hrp, TweenInfo.new(0.6), {CFrame = CFrame.new(target + Vector3.new(0,6,0))})
+                    -- Teleport halus
+                    local tween = TweenService:Create(hrp, TweenInfo.new(0.6, Enum.EasingStyle.Linear), {CFrame = CFrame.new(target + Vector3.new(0,6,0))})
                     hrp.Anchored = true
                     tween:Play()
                     tween.Completed:Wait()
                     hrp.Anchored = false
 
                     task.wait(0.7)
-                    for _, p in Workspace:GetDescendants() do
+
+                    -- Hold E 5 detik
+                    for _, p in workspace:GetDescendants() do
                         if p:IsA("ProximityPrompt") and (hrp.Position - p.Parent.Position).Magnitude < 30 then
                             fireproximityprompt(p, 5)
                             break
@@ -193,7 +182,8 @@ RedeemBtn.MouseButton1Click:Connect(function()
 
                     task.wait(6)
                     deliveries += 1
-                    idx = (idx % 3) + 1
+                    idx = idx % 3 + 1
+
                     game.StarterGui:SetCore("SendNotification",{
                         Title = "Delivery #"..deliveries,
                         Text = "+15.000 Cash | +20 Coins",
@@ -203,14 +193,13 @@ RedeemBtn.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Auto resize
         Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             Scroll.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 20)
         end)
 
         game.StarterGui:SetCore("SendNotification",{
-            Title = "MIYOSHI MINI",
-            Text = "Premium mini loaded! Klik B",
+            Title = "MIYOSHI PREMIUM",
+            Text = "Koordinat Only + Mini Premium Loaded!",
             Duration = 6
         })
 
