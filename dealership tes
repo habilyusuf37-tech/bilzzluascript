@@ -1,201 +1,48 @@
---===== LOAD RAYFIELD =====--
+-- Load Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
---===== SERVICES =====--
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
-local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local task = task
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local lp = Players.LocalPlayer
-local character = lp.Character or lp.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local root = character:WaitForChild("HumanoidRootPart")
-local cam = Workspace.CurrentCamera
+-- RemoteEvents
+local dealerEvent = ReplicatedStorage:WaitForChild("OpenDealershipEvent") -- ganti sesuai nama RemoteEvent
+local boxEvent = ReplicatedStorage:WaitForChild("ClaimBoxEvent") -- ganti sesuai nama RemoteEvent
 
---===== VEHICLE (Jika AutoFarm) =====--
-local vehicle = Workspace:WaitForChild("Vehicle") -- ganti sesuai nama vehicle
-local vehicleRoot = vehicle:WaitForChild("PrimaryPart") or vehicle:WaitForChild("HumanoidRootPart")
-
---===== WAYPOINTS =====--
-local waypoints = {
-    {pos = Vector3.new(-13007.67, 1051.88, -16369.39), radius = 15},
-    {pos = Vector3.new(-38723.95, 1013.15, -62498.38), radius = 20},
-    {pos = Vector3.new(-50885.80, 1012.89, -86516.27), radius = 25},
-    {pos = Vector3.new(-25909.67, 1050.33, -43893.98), radius = 10},
-}
-
-local jobTruck = Vector3.new(-21795.81, 1052.03, -26799.80)
-
-local flySpeed = 250
-local delayTime = 45
-local pingLimit = 180
-local currentWP = 1
-local running = false
-local earnings = 0
-local reachDist = 15
-local noclipConn, flyConn, bv
-
---===== DEALERS =====--
-local dealers = {
-    Premium = Vector3.new(351.16, 8.19, -286.64),
-    SLM = Vector3.new(940.53, 6.29, -474.83),
-    Tokoma = Vector3.new(2470.92, 5.11, -550.10),
-    BMR = Vector3.new(3083.91, 5.55, -546.16),
-}
-
---===== CREATE RAYFIELD UI =====--
+-- Window
 local Window = Rayfield:CreateWindow({
-    Name = "Premium by Bill",
-    LoadingTitle = "Bill Hub",
+    Name = "Premium Menu",
+    LoadingTitle = "Premium Hub",
     LoadingSubtitle = "by Bill",
     Theme = "Dark",
-    ConfigurationSaving = { Enabled = true, FolderName = "PremiumByBillConfigs", FileName = "Config1" },
-    KeySystem = true,
-    KeySettings = {
-        Title = "Enter Key",
-        Subtitle = "Enter the key to access UI",
-        Note = "Key: premiumhub",
-        FileName = "KeyConfig",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = "premiumhub"
-    }
+    ConfigurationSaving = {Enabled = true, FolderName = "PremiumHubConfig", FileName = "Config1"}
 })
 
---===== MAIN TAB =====--
-local MainTab = Window:CreateTab("Main", 4483362458)
-local MainSection = MainTab:CreateSection("Main Section")
+-- Tab Dealer & Box
+local PremiumTab = Window:CreateTab("Premium", 4483362458)
+local PremiumSection = PremiumTab:CreateSection("Dealer & Box")
 
--- Slider Delay Timer
-MainTab:CreateSlider({
-    Name = "Delay Timer (sec)",
-    Range = {5,120},
-    Increment = 1,
-    Suffix = "s",
-    CurrentValue = 45,
-    Callback = function(value)
-        delayTime = value
-    end,
-})
-
--- Slider Speed
-MainTab:CreateSlider({
-    Name = "Speed",
-    Range = {50,500},
-    Increment = 10,
-    Suffix = "stud/s",
-    CurrentValue = 250,
-    Callback = function(value)
-        flySpeed = value
-    end,
-})
-
--- Button Teleport Job Truck
-MainTab:CreateButton({
-    Name = "Teleport Job Truck",
+-- Auto Open Dealer
+PremiumTab:CreateButton({
+    Name = "Open Premium Dealer",
     Callback = function()
-        if vehicleRoot then
-            vehicleRoot.CFrame = CFrame.new(jobTruck + Vector3.new(0,5,0))
-            Rayfield:Notify({Title="Teleport", Content="Teleported to Job Truck", Duration=3})
-        end
+        dealerEvent:FireServer("Premium") -- langsung buka dealer
+        Rayfield:Notify({
+            Title = "Dealer Opened",
+            Content = "Premium Dealer successfully opened!",
+            Duration = 3
+        })
     end,
 })
 
--- Toggle AutoFarm
-MainTab:CreateToggle({
-    Name = "AutoFarm ON/OFF",
-    CurrentValue = false,
-    Flag = "AutoFarmToggle",
-    Callback = function(value)
-        running = value
-        if value then
-            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm started!", Duration=3})
-            startAutoFarm()
-        else
-            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm stopped!", Duration=3})
-            if noclipConn then noclipConn:Disconnect() end
-            if flyConn then flyConn:Disconnect() end
-            if bv then bv:Destroy() end
-        end
+-- Auto Claim Box
+PremiumTab:CreateButton({
+    Name = "Claim Box",
+    Callback = function()
+        boxEvent:FireServer("Box1") -- langsung claim box
+        Rayfield:Notify({
+            Title = "Box Claimed",
+            Content = "Box successfully claimed!",
+            Duration = 3
+        })
     end,
 })
-
--- Button Dealer Teleport
-local DealerTab = Window:CreateTab("Dealers", 4483362458)
-for name, coord in pairs(dealers) do
-    DealerTab:CreateButton({
-        Name = "Teleport to "..name,
-        Callback = function()
-            local originalCFrame = root.CFrame
-            local originalCamCF = cam.CFrame
-
-            -- Freeze camera ke dealer
-            cam.CFrame = CFrame.new(coord + Vector3.new(0,5,10), coord)
-
-            -- Cari ProximityPrompt
-            local prompt = Workspace:FindFirstChild(name.."ProximityPrompt")
-            if prompt and prompt:IsA("ProximityPrompt") then
-                prompt:InputHoldBegin()
-                wait(3)
-                prompt:InputHoldEnd()
-                Rayfield:Notify({Title="Dealer", Content="Opened "..name.." Dealer", Duration=3})
-            end
-
-            -- Kembalikan posisi dan kamera
-            root.CFrame = originalCFrame
-            cam.CFrame = originalCamCF
-        end
-    })
-end
-
---===== AUTO FARM FUNCTION =====--
-function startAutoFarm()
-    noclipConn = RunService.Stepped:Connect(function()
-        if not running or not vehicle then return end
-        for _, part in pairs(vehicle:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end)
-
-    bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-    bv.Velocity = Vector3.new(0,0,0)
-    bv.Parent = vehicleRoot
-
-    flyConn = RunService.Heartbeat:Connect(function()
-        if not running or not vehicleRoot then return end
-
-        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-        if ping > pingLimit then
-            bv.Velocity = Vector3.new(0,0,0)
-            task.wait(delayTime)
-            return
-        end
-
-        local target = waypoints[currentWP].pos
-        local dir = (target - vehicleRoot.Position).Unit
-        bv.Velocity = dir * flySpeed + Vector3.new(0,10,0)
-
-        if (vehicleRoot.Position - target).Magnitude < waypoints[currentWP].radius then
-            earnings += math.random(100,500)
-            Rayfield:Notify({Title="Waypoint Reached", Content="Earnings: Rp "..earnings, Duration=2})
-
-            running = false
-            bv.Velocity = Vector3.new(0,0,0)
-            task.spawn(function()
-                for i = delayTime,0,-1 do
-                    Rayfield:Notify({Title="Delay AutoFarm", Content="AutoFarm resumes in "..i.." sec", Duration=1})
-                    task.wait(1)
-                end
-                currentWP = currentWP % #waypoints + 1
-                running = true
-            end)
-        end
-    end)
-end
-
---===== Welcome Notification =====--
-Rayfield:Notify({Title="Welcome!", Content="Premium by Bill UI ready", Duration=5})
