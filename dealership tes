@@ -1,48 +1,303 @@
--- Load Rayfield
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
--- Services
+-- Client / LocalScript (StarterPlayerScripts)
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- RemoteEvents
-local dealerEvent = ReplicatedStorage:WaitForChild("OpenDealershipEvent") -- ganti sesuai nama RemoteEvent
-local boxEvent = ReplicatedStorage:WaitForChild("ClaimBoxEvent") -- ganti sesuai nama RemoteEvent
+-- Remotes
+local TeleportDealerEvent = ReplicatedStorage:WaitForChild("TeleportDealerEvent")
+local OpenDealerEvent      = ReplicatedStorage:WaitForChild("OpenDealerEvent")
+local OpenDealerClient     = ReplicatedStorage:WaitForChild("OpenDealerClient")
+local GetDealerItems       = ReplicatedStorage:WaitForChild("GetDealerItems")
+local BuyCarEvent          = ReplicatedStorage:WaitForChild("BuyCarEvent")
+local NotifyEvent          = ReplicatedStorage:WaitForChild("NotifyEvent")
 
--- Window
-local Window = Rayfield:CreateWindow({
-    Name = "Premium Menu",
-    LoadingTitle = "Premium Hub",
-    LoadingSubtitle = "by Bill",
-    Theme = "Dark",
-    ConfigurationSaving = {Enabled = true, FolderName = "PremiumHubConfig", FileName = "Config1"}
-})
+-- Load Rayfield
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+end)
+if not success or not Rayfield then
+    warn("Rayfield failed to load. UI will not be created.")
+    return
+end
 
--- Tab Dealer & Box
-local PremiumTab = Window:CreateTab("Premium", 4483362458)
-local PremiumSection = PremiumTab:CreateSection("Dealer & Box")
+-- Create basic DealerUI if not exist (ScreenGui with template)
+local function ensureDealerUI()
+    local gui = PlayerGui:FindFirstChild("DealerUI")
+    if gui then return gui end
 
--- Auto Open Dealer
-PremiumTab:CreateButton({
-    Name = "Open Premium Dealer",
-    Callback = function()
-        dealerEvent:FireServer("Premium") -- langsung buka dealer
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "DealerUI"
+    screen.ResetOnSpawn = false
+    screen.Parent = PlayerGui
+
+    local main = Instance.new("Frame")
+    main.Name = "MainFrame"
+    main.AnchorPoint = Vector2.new(0.5,0.5)
+    main.Position = UDim2.new(0.5, 0, 0.5, 0)
+    main.Size = UDim2.new(0, 700, 0, 400)
+    main.BackgroundTransparency = 0.15
+    main.Parent = screen
+
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, 0, 0, 40)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 24
+    title.Text = "Dealer"
+    title.Parent = main
+
+    local list = Instance.new("ScrollingFrame")
+    list.Name = "List"
+    list.Size = UDim2.new(1, -20, 1, -60)
+    list.Position = UDim2.new(0, 10, 0, 45)
+    list.CanvasSize = UDim2.new(0, 0, 1, 0)
+    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    list.Parent = main
+    list.ScrollBarThickness = 8
+
+    -- Template item (hidden)
+    local template = Instance.new("Frame")
+    template.Name = "TemplateItem"
+    template.Size = UDim2.new(1, -10, 0, 80)
+    template.BackgroundTransparency = 0.2
+    template.Visible = false
+    template.Parent = list
+
+    local carName = Instance.new("TextLabel")
+    carName.Name = "CarName"
+    carName.Size = UDim2.new(0.6, 0, 1, 0)
+    carName.Position = UDim2.new(0, 8, 0, 0)
+    carName.BackgroundTransparency = 1
+    carName.Font = Enum.Font.SourceSansBold
+    carName.TextSize = 18
+    carName.Text = "Car"
+    carName.Parent = template
+
+    local price = Instance.new("TextLabel")
+    price.Name = "Price"
+    price.Size = UDim2.new(0.25, 0, 1, 0)
+    price.Position = UDim2.new(0.62, 0, 0, 0)
+    price.BackgroundTransparency = 1
+    price.Font = Enum.Font.SourceSans
+    price.TextSize = 16
+    price.Text = "$0"
+    price.Parent = template
+
+    local buyBtn = Instance.new("TextButton")
+    buyBtn.Name = "BuyButton"
+    buyBtn.Size = UDim2.new(0.12, -10, 0.8, -10)
+    buyBtn.Position = UDim2.new(0.86, 0, 0.1, 0)
+    buyBtn.Text = "Buy"
+    buyBtn.Parent = template
+
+    return screen
+end
+
+-- Notification handler (server -> client)
+NotifyEvent.OnClientEvent:Connect(function(typeStr, message)
+    -- Use Rayfield notify if available
+    if Rayfield and Rayfield.Notify then
         Rayfield:Notify({
-            Title = "Dealer Opened",
-            Content = "Premium Dealer successfully opened!",
-            Duration = 3
+            Title = typeStr,
+            Content = message,
+            Duration = 4
         })
-    end,
-})
+    else
+        warn(typeStr, message)
+    end
+end)
 
--- Auto Claim Box
-PremiumTab:CreateButton({
-    Name = "Claim Box",
-    Callback = function()
-        boxEvent:FireServer("Box1") -- langsung claim box
-        Rayfield:Notify({
-            Title = "Box Claimed",
-            Content = "Box successfully claimed!",
-            Duration = 3
+-- OpenDealerClient (server tells client to open dealer)
+OpenDealerClient.OnClientEvent:Connect(function(dealerName)
+    local gui = ensureDealerUI()
+    gui.Enabled = true
+    local main = gui.MainFrame
+    main.Title.Text = dealerName .. " Dealer"
+    -- load items from server
+    local ok, items = pcall(function() return GetDealerItems:InvokeServer(dealerName) end)
+    if not ok or type(items) ~= "table" then
+        NotifyEvent:FireServer("Error", "Failed to load dealer items.")
+        return
+    end
+
+    -- populate list
+    local list = main.List
+    -- clear old (preserve template)
+    for _, child in ipairs(list:GetChildren()) do
+        if child.Name ~= "TemplateItem" then child:Destroy() end
+    end
+
+    local template = list:FindFirstChild("TemplateItem")
+    for i, car in ipairs(items) do
+        local clone = template:Clone()
+        clone.Name = "Item_" .. tostring(i)
+        clone.Visible = true
+
+        local label = clone:FindFirstChild("CarName") or Instance.new("TextLabel", clone)
+        label.Text = car.Name
+
+        local priceLabel = clone:FindFirstChild("Price") or Instance.new("TextLabel", clone)
+        priceLabel.Text = "$" .. tostring(car.Price)
+
+        local btn = clone:FindFirstChild("BuyButton")
+        if btn then
+            btn.MouseButton1Click:Connect(function()
+                -- send buy request to server with dealerName and car Id (server will validate)
+                BuyCarEvent:FireServer(dealerName, car.Id)
+            end)
+        end
+
+        clone.Parent = list
+    end
+end)
+
+-- Ensure DealerUI exists (create if missing)
+ensureDealerUI()
+
+-- Rayfield Key System + UI creation
+Rayfield:CreateKeySystem({
+    Name = "Premium Hub Key",
+    Key = "premiumhub",
+    PremiumOnly = false,
+    Description = "Enter the access key to use Premium Hub",
+    SaveKey = true,
+    Callback = function(KeyPassed)
+        -- after key accepted, create menu window (auto execute)
+        local Window = Rayfield:CreateWindow({
+            Name = "Premium Menu",
+            LoadingTitle = "Premium Hub",
+            LoadingSubtitle = "By Bill",
+            Theme = "Dark",
+            ConfigurationSaving = {Enabled = true, FolderName = "PremiumHub", FileName = "Settings"}
         })
-    end,
+
+        -- store selections
+        local SelectedDealerBrand = "Premium"
+        local TeleportIndex = 1
+
+        -- TABS
+        local MainTab = Window:CreateTab("Main", 4483362458)
+        MainTab:CreateSection("Main Features")
+
+        MainTab:CreateInput({
+            Name = "Webhook",
+            PlaceholderText = "Enter webhook URL...",
+            RemoveTextAfterFocusLost = false,
+            Callback = function(text) print("Webhook set:", text) end
+        })
+
+        local AutoFarm = false
+        MainTab:CreateToggle({
+            Name = "Auto Farm",
+            CurrentValue = false,
+            Callback = function(v)
+                AutoFarm = v
+                Rayfield:Notify({Title="AutoFarm", Content = v and "Enabled" or "Disabled", Duration = 2})
+            end
+        })
+
+        MainTab:CreateButton({Name="Exit Farm", Callback=function() AutoFarm = false end})
+
+        -- Stats Tab (simple labels updated locally)
+        local StatsTab = Window:CreateTab("Stats", 4483362458)
+        local cooldownLabel = StatsTab:CreateLabel("Teleport Cooldown: 0s")
+        local elapsedLabel = StatsTab:CreateLabel("Elapsed Time: 0s")
+        local statusLabel = StatsTab:CreateLabel("Status Earning: Idle")
+        local totalMoneyLabel = StatsTab:CreateLabel("Total Money: $0")
+        local totalEarnLabel = StatsTab:CreateLabel("Total Earning: $0")
+        local moneyReceivedLabel = StatsTab:CreateLabel("Money Received: $0")
+
+        -- simple auto-update simulated stats (you can replace by server values later)
+        task.spawn(function()
+            local elapsed = 0
+            while true do
+                task.wait(1)
+                if AutoFarm then
+                    elapsed = elapsed + 1
+                    statusLabel:Set("Status Earning: Farming")
+                    moneyReceivedLabel:Set("Money Received: $" .. tostring(math.random(10,200)))
+                else
+                    statusLabel:Set("Status Earning: Idle")
+                end
+                elapsedLabel:Set("Elapsed Time: " .. tostring(elapsed) .. "s")
+            end
+        end)
+
+        -- Configuration Tab
+        local ConfigTab = Window:CreateTab("Configuration", 4483362458)
+        ConfigTab:CreateSlider({
+            Name = "Set Time TP",
+            Range = {1, 180},
+            Increment = 1,
+            CurrentValue = 5,
+            Callback = function(v) print("Teleport time set:", v) end
+        })
+        ConfigTab:CreateDropdown({
+            Name = "Set Recal Job",
+            Options = {"Job1","Job2","Job3"},
+            CurrentOption = "Job1",
+            Callback = function(opt) print("Recal job set:", opt) end
+        })
+
+        -- Box Tab
+        local BoxTab = Window:CreateTab("Box", 4483362458)
+        BoxTab:CreateButton({Name="Claim Daily Box", Callback=function() 
+            -- safe call to server
+            local ok = pcall(function() ReplicatedStorage:WaitForChild("ClaimBoxEvent"):FireServer("Daily") end)
+            if not ok then Rayfield:Notify({Title="Box", Content="Failed to call server."}) end
+        end})
+        BoxTab:CreateButton({Name="Buy Limited Box", Callback=function() 
+            pcall(function() ReplicatedStorage:WaitForChild("ClaimBoxEvent"):FireServer("Limited") end)
+        end})
+        BoxTab:CreateButton({Name="Buy Gamepass Box", Callback=function() 
+            pcall(function() ReplicatedStorage:WaitForChild("ClaimBoxEvent"):FireServer("Gamepass") end)
+        end})
+
+        -- Dealer Tab
+        local DealerTab = Window:CreateTab("Dealership", 4483362458)
+        DealerTab:CreateSection("Dealer Controls")
+
+        DealerTab:CreateDropdown({
+            Name = "Select Dealership Teleport",
+            Options = {"Location 1","Location 2","Location 3","Location 4"},
+            CurrentOption = "Location 1",
+            Callback = function(value)
+                TeleportIndex = tonumber(string.match(value, "%d+")) or 1
+            end
+        })
+
+        DealerTab:CreateDropdown({
+            Name = "Select Dealer Brand",
+            Options = {"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"},
+            CurrentOption = "Premium",
+            Callback = function(value) SelectedDealerBrand = value end
+        })
+
+        DealerTab:CreateButton({
+            Name = "TP Dealer",
+            Callback = function()
+                -- send index number to server
+                TeleportDealerEvent:FireServer(TeleportIndex)
+            end
+        })
+
+        DealerTab:CreateButton({
+            Name = "Open Dealer Anywhere",
+            Callback = function()
+                OpenDealerEvent:FireServer(SelectedDealerBrand)
+            end
+        })
+
+        DealerTab:CreateButton({
+            Name = "Buy Selected (from Dealer UI)",
+            Callback = function()
+                -- If Dealer UI open and player selected an item, user should use Buy on UI. Keep as fallback.
+                Rayfield:Notify({Title="Buy", Content="Use Buy button on Dealer UI list.", Duration=3})
+            end
+        })
+
+        -- Auto-execute: show window (Rayfield windows show automatically when created)
+    end
 })
