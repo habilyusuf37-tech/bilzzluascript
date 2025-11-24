@@ -1,4 +1,4 @@
--- premium (fixed) - PremiumHub All-in-One (client-side)
+-- Premium Hub (compressed build)
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
@@ -6,347 +6,126 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Robust Rayfield loader (tries multiple sources)
+-- Rayfield loader
 local function loadRayfield()
-    local urls = {
+    for _,link in next,{
         "https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua",
         "https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua",
         "https://raw.githubusercontent.com/UI-Library/Rayfield/main/source.lua"
-    }
-    for _, link in ipairs(urls) do
-        local ok, lib = pcall(function()
-            local src = game:HttpGet(link, true)
-            return loadstring(src)()
-        end)
-        if ok and lib then
-            return lib
-        end
+    } do
+        local ok,lib=pcall(function()return loadstring(game:HttpGet(link,true))()end)
+        if ok and lib then return lib end
     end
-    return nil
 end
 
 local Rayfield = loadRayfield()
-if not Rayfield then
-    warn("PremiumHub: Rayfield failed to load. Check HTTP or use local module.")
-    -- minimal fallback notification GUI
-    local s = Instance.new("ScreenGui")
-    s.Name = "PremiumHubFallback"
-    s.ResetOnSpawn = false
-    s.Parent = PlayerGui
-    local l = Instance.new("TextLabel", s)
-    l.Size = UDim2.new(0,420,0,100)
-    l.Position = UDim2.new(0.5,-210,0.1,0)
-    l.TextWrapped = true
-    l.TextScaled = true
-    l.Text = "PremiumHub: Rayfield failed to load. Check HTTP or host Rayfield locally."
-    return
+if not Rayfield then warn("Rayfield failed") return end
+
+local function getRemote(name,class,timeout)
+    local ok,obj=pcall(function()return ReplicatedStorage:WaitForChild(name,timeout or 5)end)
+    return (ok and obj and obj.ClassName==class) and obj or nil
 end
 
--- Helper: safe get remote with timeout (returns object or nil)
-local function getRemoteSafe(name, class, timeout)
-    timeout = timeout or 5
-    local ok, obj = pcall(function() return ReplicatedStorage:WaitForChild(name, timeout) end)
-    if ok and obj and obj.ClassName == class then
-        return obj
-    else
-        return nil
-    end
-end
+local TeleportDealerEvent = getRemote("TeleportDealerEvent","RemoteEvent")
+local OpenDealerEvent     = getRemote("OpenDealerEvent","RemoteEvent")
+local OpenDealerClient    = getRemote("OpenDealerClient","RemoteEvent")
+local GetDealerItems      = getRemote("GetDealerItems","RemoteFunction")
+local BuyCarEvent         = getRemote("BuyCarEvent","RemoteEvent")
+local ClaimBoxEvent       = getRemote("ClaimBoxEvent","RemoteEvent")
+local NotifyEvent         = getRemote("NotifyEvent","RemoteEvent")
 
--- Try to get remotes (non-blocking after timeout)
-local TeleportDealerEvent = getRemoteSafe("TeleportDealerEvent", "RemoteEvent")
-local OpenDealerEvent      = getRemoteSafe("OpenDealerEvent", "RemoteEvent")
-local OpenDealerClient     = getRemoteSafe("OpenDealerClient", "RemoteEvent")
-local GetDealerItems       = getRemoteSafe("GetDealerItems", "RemoteFunction")
-local BuyCarEvent          = getRemoteSafe("BuyCarEvent", "RemoteEvent")
-local ClaimBoxEvent        = getRemoteSafe("ClaimBoxEvent", "RemoteEvent")
-local NotifyEvent          = getRemoteSafe("NotifyEvent", "RemoteEvent")
+local function safeFire(r,...) if r then pcall(function() r:FireServer(...) end) end end
+local function safeInvoke(r,...) return r and (pcall(function()return r:InvokeServer(...) end)) or nil end
 
--- Utility: safe fire / invoke wrappers
-local function safeFire(remote, ...)
-    if not remote then
-        warn("PremiumHub: remote missing (fire) -", remote)
-        return false
-    end
-    local ok, err = pcall(function() remote:FireServer(...) end)
-    if not ok then
-        warn("PremiumHub: FireServer error:", err)
-        return false
-    end
-    return true
-end
-
-local function safeInvoke(remote, ...)
-    if not remote then
-        warn("PremiumHub: remote missing (invoke) -", remote)
-        return nil
-    end
-    local ok, res = pcall(function() return remote:InvokeServer(...) end)
-    if not ok then
-        warn("PremiumHub: InvokeServer error:", res)
-        return nil
-    end
-    return res
-end
-
--- Dealer teleport coords
 local DealerTP = {
-    Vector3.new(351.16, 8.19, -286.64),
-    Vector3.new(940.53, 6.29, -474.83),
-    Vector3.new(2470.92, 5.11, -550.10),
-    Vector3.new(3083.91, 5.55, -546.16),
+    Vector3.new(351.16,8.19,-286.64),
+    Vector3.new(940.53,6.29,-474.83),
+    Vector3.new(2470.92,5.11,-550.10),
+    Vector3.new(3083.91,5.55,-546.16),
 }
 
--- Create DealerUI if missing (safe)
-local function ensureDealerUI()
-    local gui = PlayerGui:FindFirstChild("DealerUI")
-    if gui then return gui end
+-- dealer UI minimal builder
+local function dealerUI()
+    local s=Instance.new("ScreenGui",PlayerGui) s.Name="DealerUI" s.ResetOnSpawn=false
+    local f=Instance.new("Frame",s) f.Name="MainFrame" f.AnchorPoint=Vector2.new(.5,.5) f.Position=UDim2.new(.5,.5,0,0)
+    f.Size=UDim2.new(0,720,0,420) f.BackgroundTransparency=.15 f.BackgroundColor3=Color3.fromRGB(30,30,30)
 
-    local screen = Instance.new("ScreenGui")
-    screen.Name = "DealerUI"
-    screen.ResetOnSpawn = false
-    screen.Parent = PlayerGui
+    local t=Instance.new("TextLabel",f) t.Name="Title" t.Size=UDim2.new(1,0,0,40)
+    t.BackgroundTransparency=1 t.Font=Enum.Font.SourceSansBold t.TextSize=22 t.TextColor3=Color3.new(1,1,1) t.Text="Dealer"
 
-    local frame = Instance.new("Frame", screen)
-    frame.Name = "MainFrame"
-    frame.AnchorPoint = Vector2.new(0.5,0.5)
-    frame.Position = UDim2.new(0.5,0.5)
-    frame.Size = UDim2.new(0,720,0,420)
-    frame.BackgroundTransparency = 0.15
-    frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    local list=Instance.new("ScrollingFrame",f) list.Name="List"
+    list.Size=UDim2.new(1,-20,1,-60) list.Position=UDim2.new(0,10,0,45)
+    list.AutomaticCanvasSize=Enum.AutomaticSize.Y list.ScrollBarThickness=8
 
-    local title = Instance.new("TextLabel", frame)
-    title.Name = "Title"
-    title.Size = UDim2.new(1,0,0,40)
-    title.Position = UDim2.new(0,0,0,0)
-    title.BackgroundTransparency = 1
-    title.Font = Enum.Font.SourceSansBold
-    title.TextSize = 22
-    title.TextColor3 = Color3.fromRGB(255,255,255)
-    title.Text = "Dealer"
+    local template=Instance.new("Frame",list) template.Name="TemplateItem"
+    template.Size=UDim2.new(1,-10,0,80) template.Visible=false template.BackgroundTransparency=.25
 
-    local list = Instance.new("ScrollingFrame", frame)
-    list.Name = "List"
-    list.Size = UDim2.new(1,-20,1,-60)
-    list.Position = UDim2.new(0,10,0,45)
-    list.CanvasSize = UDim2.new(0,0,1,0)
-    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    list.ScrollBarThickness = 8
-
-    local template = Instance.new("Frame", list)
-    template.Name = "TemplateItem"
-    template.Size = UDim2.new(1,-10,0,80)
-    template.Position = UDim2.new(0,5,0,5)
-    template.BackgroundTransparency = 0.2
-    template.Visible = false
-
-    local nameLbl = Instance.new("TextLabel", template)
-    nameLbl.Name = "CarName"
-    nameLbl.Size = UDim2.new(0.6,0,1,0)
-    nameLbl.Position = UDim2.new(0,8,0,0)
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.Font = Enum.Font.SourceSansBold
-    nameLbl.TextSize = 18
-    nameLbl.TextColor3 = Color3.fromRGB(255,255,255)
-    nameLbl.Text = "Car"
-
-    local priceLbl = Instance.new("TextLabel", template)
-    priceLbl.Name = "Price"
-    priceLbl.Size = UDim2.new(0.25,0,1,0)
-    priceLbl.Position = UDim2.new(0.62,0,0,0)
-    priceLbl.BackgroundTransparency = 1
-    priceLbl.Font = Enum.Font.SourceSans
-    priceLbl.TextSize = 16
-    priceLbl.TextColor3 = Color3.fromRGB(200,200,200)
-    priceLbl.Text = "$0"
-
-    local buyBtn = Instance.new("TextButton", template)
-    buyBtn.Name = "BuyButton"
-    buyBtn.Size = UDim2.new(0.12,-10,0.8,-10)
-    buyBtn.Position = UDim2.new(0.86,0,0.1,0)
-    buyBtn.Text = "Buy"
-    buyBtn.BackgroundColor3 = Color3.fromRGB(50,120,250)
-    buyBtn.TextColor3 = Color3.fromRGB(255,255,255)
-
-    return screen
+    Instance.new("TextLabel",template).Name="CarName"
+    Instance.new("TextLabel",template).Name="Price"
+    local b=Instance.new("TextButton",template) b.Name="BuyButton" b.Size=UDim2.new(.12,-10,.8,-10) b.Position=UDim2.new(.86,0,.1,0) b.Text="Buy"
+    return s
 end
 
--- server -> client notifications (if NotifyEvent available)
+local GUI
+
 if NotifyEvent then
-    NotifyEvent.OnClientEvent:Connect(function(title, msg)
-        if Rayfield and Rayfield.Notify then
-            Rayfield:Notify({Title = tostring(title), Content = tostring(msg), Duration = 4})
-        else
-            warn("Notify:", title, msg)
-        end
+    NotifyEvent.OnClientEvent:Connect(function(t,m)
+        Rayfield:Notify({Title=tostring(t),Content=tostring(m),Duration=4})
     end)
 end
 
--- handle server telling client to open dealer UI
 if OpenDealerClient then
-    OpenDealerClient.OnClientEvent:Connect(function(dealerName)
-        local gui = ensureDealerUI()
-        gui.Enabled = true
-        local frame = gui.MainFrame
-        frame.Title.Text = tostring(dealerName) .. " Dealer"
+    OpenDealerClient.OnClientEvent:Connect(function(name)
+        GUI = GUI or dealerUI()
+        GUI.Enabled=true
+        local frame = GUI.MainFrame
+        frame.Title.Text = name.." Dealer"
 
-        local items = safeInvoke(GetDealerItems, dealerName)
-        if type(items) ~= "table" then
-            if NotifyEvent then NotifyEvent:FireServer("Error", "Failed to load dealer items.") end
-            return
-        end
+        for _,v in ipairs(frame.List:GetChildren()) do if v:IsA("Frame") and v.Name~="TemplateItem" then v:Destroy() end end
+        local items = safeInvoke(GetDealerItems,name)
+        local temp = frame.List.TemplateItem
 
-        local list = frame.List
-        -- clear previous items (preserve TemplateItem)
-        for _,child in ipairs(list:GetChildren()) do
-            if child:IsA("Frame") and child.Name ~= "TemplateItem" then
-                child:Destroy()
-            end
-        end
-
-        local template = list:FindFirstChild("TemplateItem")
-        for i,car in ipairs(items) do
-            local ok, clone = pcall(function() return template:Clone() end)
-            if not ok or not clone then continue end
-            clone.Name = "Item_" .. tostring(i)
-            clone.Visible = true
-
-            local nameLbl = clone:FindFirstChild("CarName")
-            if nameLbl then nameLbl.Text = car.Name end
-            local priceLbl = clone:FindFirstChild("Price")
-            if priceLbl then priceLbl.Text = "$" .. tostring(car.Price) end
-
-            local btn = clone:FindFirstChild("BuyButton")
-            if btn then
-                btn.MouseButton1Click:Connect(function()
-                    -- buy with server validation
-                    safeFire(BuyCarEvent, dealerName, car.Id)
-                end)
-            end
-
-            clone.Parent = list
+        for i,v in ipairs(items or {}) do
+            local c=temp:Clone() c.Visible=true c.Name="Item"..i c.Parent=frame.List
+            c.CarName.Text=v.Name c.Price.Text="$"..v.Price
+            c.BuyButton.MouseButton1Click:Connect(function() safeFire(BuyCarEvent,name,v.Id) end)
         end
     end)
 end
 
--- Build UI after key accepted
+-- ================= UI ===================
 Rayfield:CreateKeySystem({
-    Title = "Premium Hub Key",
-    Subtitle = "Enter your key",
-    Note = "Key: premiumhub",
-    SaveKey = true,
-    Key = "premiumhub",
-    Callback = function(passed)
-        -- create window only after key accepted
-        local Window = Rayfield:CreateWindow({
-            Name = "Premium Hub Menu",
-            LoadingTitle = "Premium Hub",
-            LoadingSubtitle = "By Bill",
-            Theme = "Dark",
-            ConfigurationSaving = {Enabled = true, FolderName = "PremiumHubConfig", FileName = "Config1"}
-        })
+    Title="Premium Hub Key",Note="Key: premiumhub",SaveKey=true,Key="premiumhub",
+    Callback=function()
+        local Window = Rayfield:CreateWindow({Name="PremiumHub",LoadingTitle="PremiumHub",Theme="Dark"})
+        local dealer,tele,af,tpTime="Premium",1,false,3
 
-        local SelectedDealerBrand = "Premium"
-        local TeleIndex = 1
-        local AutoFarm = false
-        local tpTime = 3
+        local Main = Window:CreateTab("Main")
+        Main:CreateInput({Name="Webhook",Callback=function(t)webhook=t end})
+        Main:CreateToggle({Name="AutoFarm",CurrentValue=false,Callback=function(v)af=v end})
+        Main:CreateButton({Name="Stop Farm",Callback=function()af=false end})
 
-        -- MAIN TAB
-        local MainTab = Window:CreateTab("Main")
-        MainTab:CreateSection("Main")
-        MainTab:CreateInput({Name="Webhook", PlaceholderText="Enter webhook", Callback=function(t) webhook = t end})
-        MainTab:CreateToggle({Name="AutoFarm", CurrentValue=false, Callback=function(v) AutoFarm = v Rayfield:Notify({Title="AutoFarm", Content=(v and "Enabled" or "Disabled")}) end})
-        MainTab:CreateButton({Name="Exit Farm", Callback=function() AutoFarm = false Rayfield:Notify({Title="AutoFarm", Content="Stopped"}) end})
+        local Stats = Window:CreateTab("Stats")
+        Stats:CreateLabel("Status: Idle"); Stats:CreateLabel("Money: $0")
 
-        -- STATS TAB
-        local StatsTab = Window:CreateTab("Stats")
-        StatsTab:CreateLabel("Teleport Cooldown: 0s")
-        StatsTab:CreateLabel("Elapsed Time: 0s")
-        StatsTab:CreateLabel("Status Earning: Idle")
-        StatsTab:CreateLabel("Total Money: $0")
-        StatsTab:CreateLabel("Total Earning: $0")
-        StatsTab:CreateLabel("Money Received: $0")
+        local Config = Window:CreateTab("Config")
+        Config:CreateSlider({Name="TP Time",Range={1,30},CurrentValue=3,Callback=function(v)tpTime=v end})
 
-        -- CONFIG TAB
-        local ConfigTab = Window:CreateTab("Configuration")
-        ConfigTab:CreateSlider({Name="Set Teleport Time", Range={1,60}, Increment=1, CurrentValue=tpTime, Callback=function(v) tpTime = v end})
-        ConfigTab:CreateDropdown({Name="Set Recal Job", Options={"Job1","Job2","Job3"}, CurrentOption="Job1", Callback=function(opt) recalljob = opt end})
+        local Box = Window:CreateTab("Box")
+        Box:CreateButton({Name="Daily Box",Callback=function()safeFire(ClaimBoxEvent,"Daily")end})
+        Box:CreateButton({Name="Limited Box",Callback=function()safeFire(ClaimBoxEvent,"Limited")end})
+        Box:CreateButton({Name="Gamepass Box",Callback=function()safeFire(ClaimBoxEvent,"Gamepass")end})
 
-        -- BOX TAB
-        local BoxTab = Window:CreateTab("Box")
-        BoxTab:CreateButton({Name="Claim Daily Box", Callback=function() safeFire(ClaimBoxEvent, "Daily") end})
-        BoxTab:CreateButton({Name="Buy Limited Box", Callback=function() safeFire(ClaimBoxEvent, "Limited") end})
-        BoxTab:CreateButton({Name="Buy Gamepass Box", Callback=function() safeFire(ClaimBoxEvent, "Gamepass") end})
-
-        -- DEALER TAB
-        local DealerTab = Window:CreateTab("Dealership")
-        DealerTab:CreateSection("Dealer Controls")
-        DealerTab:CreateDropdown({
-            Name = "Select Dealership",
-            Options = {"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"},
-            CurrentOption = "Premium",
-            Callback = function(v) SelectedDealerBrand = v end
-        })
-        DealerTab:CreateDropdown({
-            Name = "Teleport Dealer",
-            Options = {"Dealer 1","Dealer 2","Dealer 3","Dealer 4"},
-            CurrentOption = "Dealer 1",
-            Callback = function(opt) TeleIndex = tonumber(opt:match("%d+")) or 1 end
-        })
-        DealerTab:CreateButton({Name="TP Dealer", Callback=function()
-            if TeleportDealerEvent then
-                safeFire(TeleportDealerEvent, TeleIndex)
+        local D = Window:CreateTab("Dealership")
+        D:CreateDropdown({Name="Brand",Options={"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"},Callback=function(v)dealer=v end})
+        D:CreateDropdown({Name="Dealer",Options={"Dealer 1","Dealer 2","Dealer 3","Dealer 4"},Callback=function(v)tele=tonumber(v:match("%d+"))end})
+        D:CreateButton({Name="TP Dealer",Callback=function()
+            if TeleportDealerEvent then safeFire(TeleportDealerEvent,tele)
             else
-                -- as fallback local teleport (client-side) if remote missing
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    char:PivotTo(CFrame.new(DealerTP[TeleIndex]))
-                end
+                local c=LocalPlayer.Character;if c then c:PivotTo(CFrame.new(DealerTP[tele]))end
             end
         end})
-        DealerTab:CreateButton({Name="Open Dealer Anywhere", Callback=function()
-            if OpenDealerEvent then safeFire(OpenDealerEvent, SelectedDealerBrand)
-            else
-                -- try open locally: request items then open UI
-                local ok, items = pcall(function() return GetDealerItems and GetDealerItems:InvokeServer(SelectedDealerBrand) end)
-                if ok and items then
-                    if OpenDealerClient then
-                        OpenDealerClient:FireClient(LocalPlayer, SelectedDealerBrand)
-                    else
-                        -- manually open UI
-                        local gui = ensureDealerUI()
-                        gui.Enabled = true
-                        local frame = gui.MainFrame
-                        frame.Title.Text = SelectedDealerBrand .. " Dealer"
-                        -- populate manually if items table present
-                        if type(items) == "table" then
-                            -- clear and populate
-                            for _,c in ipairs(frame.List:GetChildren()) do
-                                if c:IsA("Frame") and c.Name ~= "TemplateItem" then c:Destroy() end
-                            end
-                            local template = frame.List:FindFirstChild("TemplateItem")
-                            for i,car in ipairs(items) do
-                                local clone = template:Clone()
-                                clone.Name = "Item_"..i
-                                clone.Visible = true
-                                if clone:FindFirstChild("CarName") then clone.CarName.Text = car.Name end
-                                if clone:FindFirstChild("Price") then clone.Price.Text = "$"..tostring(car.Price) end
-                                if clone:FindFirstChild("BuyButton") then
-                                    clone.BuyButton.MouseButton1Click:Connect(function()
-                                        safeFire(BuyCarEvent, SelectedDealerBrand, car.Id)
-                                    end)
-                                end
-                                clone.Parent = frame.List
-                            end
-                        end
-                    end
-                else
-                    if NotifyEvent then NotifyEvent:FireClient(LocalPlayer, "Error", "Cannot open dealer (server unavailable).") end
-                end
-            end
-        end})
-        DealerTab:CreateButton({Name="Buy Car (from UI)", Callback=function()
-            if NotifyEvent then NotifyEvent:FireClient(LocalPlayer, "Info", "Open dealer UI and press Buy on the item.") end
-        end})
+        D:CreateButton({Name="Open Dealer",Callback=function()safeFire(OpenDealerEvent,dealer)end})
+        D:CreateButton({Name="Buy Car (UI)",Callback=function()Rayfield:Notify({Title="Info",Content="Open a dealer and click buy"})end})
     end
 })
