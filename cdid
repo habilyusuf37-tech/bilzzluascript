@@ -1,187 +1,152 @@
--- FINAL SCRIPT – 100% SESUAI PERMINTAAN TERBARU
--- Autofarm ON → otomatis countdown 40s + high ping detect + nama jadi "Premium by Bill"
--- Tidak ada tombol delay / high ping / premium bill lagi
--- UI kecil premium, teleport turun pelan (anti void), Job Truck aman
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Rayfield = require(ReplicatedStorage:WaitForChild("Rayfield"))
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
+local UserInputService = game:GetService("UserInputService")
+local task = task
 
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local lp = Players.LocalPlayer
+local character = lp.Character or lp.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local root = character:WaitForChild("HumanoidRootPart")
 
--- KOORDINAT 100% EXACT
+-- VEHICLE
+local vehicle = workspace:WaitForChild("Vehicle") -- ganti sesuai vehicle
+local vehicleRoot = vehicle:WaitForChild("PrimaryPart") or vehicle:WaitForChild("HumanoidRootPart")
+
+-- WAYPOINTS
 local waypoints = {
-    Vector3.new(-13007.67, 1051.88, -16369.39),
-    Vector3.new(-38723.95, 1013.15, -62498.38),
-    Vector3.new(-50885.80, 1012.89, -86516.27),
-    Vector3.new(-25909.67, 1050.33, -43893.98)
+    {pos = Vector3.new(-13007.67, 1051.88, -16369.39), radius = 15},
+    {pos = Vector3.new(-38723.95, 1013.15, -62498.38), radius = 20},
+    {pos = Vector3.new(-50885.80, 1012.89, -86516.27), radius = 25},
+    {pos = Vector3.new(-25909.67, 1050.33, -43893.98), radius = 10},
 }
+
 local jobTruck = Vector3.new(-21795.81, 1052.03, -26799.80)
-
-local autofarm = false
-local delayTime = 40
+local flySpeed = 250
+local pingLimit = 180
+local reachDist = 15
 local currentWP = 1
-local countdown = 0
+local running = false
+local earnings = 0
+local delayTime = 45 -- default delay
 
--- HIGH PING DETECT
-local function getPing()
-    local ping = 0
-    pcall(function()
-        ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-    end)
-    return ping
-end
+-- Rayfield Window
+local Window = Rayfield:CreateWindow({
+    Name = "Premium by Bill",
+    LoadingTitle = "Bill Hub",
+    LoadingSubtitle = "by Bill",
+    Theme = "Dark",
+    ConfigurationSaving = { Enabled = true, FolderName = "PremiumByBillConfigs", FileName = "Config1" },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Masukkan Key",
+        Subtitle = "Masukkan key untuk mengakses UI",
+        Note = "Key: premiumhub",
+        FileName = "KeyConfig",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = "premiumhub"
+    }
+})
 
--- TELEPORT PELAN ANTI VOID
-local function tpSmooth(pos)
-    if not hrp then return end
-    TweenService:Create(hrp, TweenInfo.new(0.7), {CFrame = hrp.CFrame + Vector3.new(0,35,0)}):Play()
-    task.wait(0.8)
-    hrp.CFrame = CFrame.new(pos.X, hrp.Position.Y, pos.Z)
-    task.wait(0.3)
-    local down = TweenService:Create(hrp, TweenInfo.new(1.6, Enum.EasingStyle.Sine), {CFrame = CFrame.new(pos)})
-    down:Play()
-    down.Completed:Wait()
-end
+local MainTab = Window:CreateTab("Main", 4483362458)
+local MainSection = MainTab:CreateSection("Main Section")
 
--- NAMA JADI "Premium by Bill" OTOMATIS SAAT AUTOFARM NYALA
-local function updateNameTag()
-    if not char or not char:FindFirstChild("Head") then return end
-    for _,v in pairs(char.Head:GetChildren()) do
-        if v:IsA("BillboardGui") then v:Destroy() end
-    end
-    local bill = Instance.new("BillboardGui", char.Head)
-    bill.Size = UDim2.new(0,220,0,60)
-    bill.StudsOffset = Vector3.new(0,3.5,0)
-    bill.AlwaysOnTop = true
-    local txt = Instance.new("TextLabel", bill)
-    txt.Size = UDim2.new(1,0,1,0)
-    txt.BackgroundTransparency = 1
-    txt.Text = autofarm and "Premium by Bill" or player.DisplayName
-    txt.TextColor3 = Color3.fromRGB(0,255,255)
-    txt.TextStrokeTransparency = 0
-    txt.TextStrokeColor3 = Color3.new(0,0,0)
-    txt.Font = Enum.Font.GothamBlack
-    txt.TextScaled = true
-end
-spawn(function() while task.wait(0.8) do updateNameTag() end end)
+-- Slider Delay
+MainTab:CreateSlider({
+    Name = "Delay Timer (detik)",
+    Range = {5, 120},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = 45,
+    Callback = function(value)
+        delayTime = value
+        print("Delay timer diatur ke:", delayTime, "detik")
+    end,
+})
 
--- NOTIFIKASI PREMIUM
-local sg = Instance.new("ScreenGui", player.PlayerGui)
-local function notif(text)
-    spawn(function()
-        local n = Instance.new("TextLabel", sg)
-        n.Size = UDim2.new(0,320,0,65)
-        n.Position = UDim2.new(0.5,-160,0,-80)
-        n.BackgroundColor3 = Color3.fromRGB(0,15,40)
-        n.Text = text
-        n.TextColor3 = Color3.fromRGB(0,255,255)
-        n.TextScaled = true
-        n.Font = Enum.Font.GothamBlack
-        n.BackgroundTransparency = 0.1
-        Instance.new("UICorner",n).CornerRadius = UDim.new(0,18)
-        local st = Instance.new("UIStroke",n); st.Color = Color3.fromRGB(0,255,255); st.Thickness = 4
-        TweenService:Create(n, TweenInfo.new(0.5), {Position=UDim2.new(0.5,-160,0,35)}):Play()
-        task.wait(2.8)
-        TweenService:Create(n, TweenInfo.new(0.5), {Position=UDim2.new(0.5,-160,0,-80)}):Play()
-        task.wait(0.6); n:Destroy()
-    end)
-end
-
--- TOMBOL BULAT
-local openBtn = Instance.new("ImageButton", sg)
-openBtn.Size = UDim2.new(0,70,0,70)
-openBtn.Position = UDim2.new(0,15,0,15)
-openBtn.BackgroundColor3 = Color3.fromRGB(5,5,45)
-Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
-local grad = Instance.new("UIGradient", openBtn)
-grad.Color = ColorSequence.new(Color3.fromRGB(0,180,255), Color3.fromRGB(200,0,255))
-grad.Rotation = 45
-local stroke = Instance.new("UIStroke", openBtn); stroke.Color = Color3.fromRGB(0,255,255); stroke.Thickness = 4
-
--- MENU KECIL PREMIUM (280x300)
-local menu = Instance.new("Frame", sg)
-menu.Size = UDim2.new(0,280,0,300)
-menu.Position = UDim2.new(0.5,-140,0.5,-150)
-menu.BackgroundColor3 = Color3.fromRGB(8,8,45)
-menu.BackgroundTransparency = 0.05
-menu.Visible = false
-Instance.new("UICorner", menu).CornerRadius = UDim.new(0,28)
-local mst = Instance.new("UIStroke", menu); mst.Color = Color3.fromRGB(0,230,255); mst.Thickness = 5
-
--- COUNTDOWN LABEL DI TENGAH UI
-local countLabel = Instance.new("TextLabel", menu)
-countLabel.Size = UDim2.new(0,240,0,70)
-countLabel.Position = UDim2.new(0.5,-120,0,15)
-countLabel.BackgroundTransparency = 1
-countLabel.Text = "Autofarm: OFF"
-countLabel.TextColor3 = Color3.fromRGB(255,80,80)
-countLabel.TextScaled = true
-countLabel.Font = Enum.Font.GothamBlack
-
--- TOMBOL AUTOFARM (satu-satunya tombol fitur)
-local autoBtn = Instance.new("TextButton", menu)
-autoBtn.Size = UDim2.new(0,220,0,85)
-autoBtn.Position = UDim2.new(0.5,-110,0,100)
-autoBtn.BackgroundColor3 = Color3.fromRGB(120,20,20)
-autoBtn.Text = "Autofarm OFF"
-autoBtn.TextColor3 = Color3.new(1,1,1)
-autoBtn.TextScaled = true
-autoBtn.Font = Enum.Font.GothamBlack
-Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0,30)
-local abStroke = Instance.new("UIStroke", autoBtn); abStroke.Color = Color3.fromRGB(255,100,100); abStroke.Thickness = 3
-
-autoBtn.MouseButton1Click:Connect(function()
-    autofarm = not autofarm
-    autoBtn.Text = "Autofarm "..(autofarm and "ON" or "OFF")
-    autoBtn.BackgroundColor3 = autofarm and Color3.fromRGB(20,120,20) or Color3.fromRGB(120,20,20)
-    abStroke.Color = autofarm and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,100,100)
-    countLabel.Text = autofarm and "Next: "..delayTime.."s" or "Autofarm: OFF"
-    if autofarm then countdown = delayTime end
-    updateNameTag()
-end)
-
--- JOB TRUCK BUTTON
-local jobBtn = Instance.new("TextButton", menu)
-jobBtn.Size = UDim2.new(0,220,0,85)
-jobBtn.Position = UDim2.new(0.5,-110,0,200)
-jobBtn.BackgroundColor3 = Color3.fromRGB(20,90,160)
-jobBtn.Text = "Job Truck TP"
-jobBtn.TextColor3 = Color3.new(1,1,1)
-jobBtn.TextScaled = true
-jobBtn.Font = Enum.Font.GothamBlack
-Instance.new("UICorner", jobBtn).CornerRadius = UDim.new(0,30)
-local jst = Instance.new("UIStroke", jobBtn); jst.Color = Color3.fromRGB(0,255,200); jst.Thickness = 3
-jobBtn.MouseButton1Click:Connect(function()
-    tpSmooth(jobTruck)
-    notif("Job Truck Teleport Success")
-end)
-
--- AUTOFARM LOOP + HIGH PING + COUNTDOWN DI UI
-spawn(function()
-    while task.wait(1) do
-        if autofarm then
-            local ping = getPing()
-            if ping > 220 then
-                notif("High Ping Detected ("..ping.."ms) – Paused")
-                task.wait(8)
-            else
-                countdown = countdown - 1
-                if countdown <= 0 then
-                    tpSmooth(waypoints[currentWP])
-                    notif("WP "..currentWP.." Delivered")
-                    currentWP = (currentWP % #waypoints) + 1
-                    countdown = delayTime
+-- Teleport Job Truck + Delay
+MainTab:CreateButton({
+    Name = "Teleport Job Truck",
+    Callback = function()
+        if vehicleRoot then
+            vehicleRoot.CFrame = CFrame.new(jobTruck + Vector3.new(0,5,0))
+            Rayfield:Notify({Title="Teleport", Content="Berhasil teleport ke Job Truck", Duration=3})
+            -- Mulai delay sebelum AutoFarm
+            task.spawn(function()
+                for i = delayTime, 0, -1 do
+                    Rayfield:Notify({Title="Delay AutoFarm", Content="AutoFarm mulai dalam "..i.." detik", Duration=1})
+                    task.wait(1)
                 end
-                countLabel.Text = "Next: "..countdown.."s | WP "..currentWP
-            end
+                -- Start AutoFarm setelah delay habis
+                running = true
+                startAutoFarm()
+            end)
         end
-    end
-end)
+    end,
+})
 
-openBtn.MouseButton1Click:Connect(function() menu.Visible = not menu.Visible end)
-player.CharacterAdded:Connect(function(c) char = c; hrp = c:WaitForChild("HumanoidRootPart"); updateNameTag() end)
+-- AUTO FARM VEHICLE + WAYPOINT + REPEAT WITH DELAY
+local function startAutoFarm()
+    -- Noclip
+    local noclipConn
+    noclipConn = RunService.Stepped:Connect(function()
+        if not running or not vehicle then return end
+        for _, part in pairs(vehicle:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end)
 
-notif("SCRIPT LOADED – Autofarm ON = Semua fitur aktif otomatis")
+    -- BodyVelocity
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.Parent = vehicleRoot
+
+    -- Loop AutoFarm
+    local flyConn
+    flyConn = RunService.Heartbeat:Connect(function()
+        if not running or not vehicleRoot then return end
+
+        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        if ping > pingLimit then
+            bv.Velocity = Vector3.new(0,0,0)
+            task.wait(delayTime)
+            return
+        end
+
+        local target = waypoints[currentWP].pos
+        local dir = (target - vehicleRoot.Position).Unit
+        bv.Velocity = dir * flySpeed + Vector3.new(0,10,0)
+
+        -- Waypoint tercapai
+        if (vehicleRoot.Position - target).Magnitude < waypoints[currentWP].radius then
+            earnings += math.random(100,500)
+            Rayfield:Notify({Title="Waypoint Reached", Content="Earnings: Rp "..earnings, Duration=2})
+            -- Hitung delay lagi sebelum next waypoint
+            running = false
+            bv.Velocity = Vector3.new(0,0,0)
+            task.spawn(function()
+                for i = delayTime,0,-1 do
+                    Rayfield:Notify({Title="Delay AutoFarm", Content="AutoFarm lanjut dalam "..i.." detik", Duration=1})
+                    task.wait(1)
+                end
+                currentWP = currentWP % #waypoints + 1
+                running = true
+            end)
+        end
+    end)
+
+    -- Stop AutoFarm tombol K
+    UserInputService.InputBegan:Connect(function(key)
+        if key.KeyCode == Enum.KeyCode.K then
+            running = false
+            if noclipConn then noclipConn:Disconnect() end
+            if flyConn then flyConn:Disconnect() end
+            if bv then bv:Destroy() end
+            Rayfield:Notify({Title="Auto Farm", Content="Auto Farm dihentikan!", Duration=3})
+        end
+    end)
+end
