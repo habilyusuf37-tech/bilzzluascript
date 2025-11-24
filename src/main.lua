@@ -1,12 +1,10 @@
 --===== LOAD RAYFIELD =====--
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua"))()
 
 --===== SERVICES =====--
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
-local UserInputService = game:GetService("UserInputService")
 local task = task
 
 local lp = Players.LocalPlayer
@@ -15,7 +13,7 @@ local humanoid = character:WaitForChild("Humanoid")
 local root = character:WaitForChild("HumanoidRootPart")
 
 --===== VEHICLE =====--
-local vehicle = workspace:WaitForChild("Vehicle") -- ganti sesuai vehicle
+local vehicle = workspace:WaitForChild("Vehicle") -- ganti sesuai nama vehicle di game
 local vehicleRoot = vehicle:WaitForChild("PrimaryPart") or vehicle:WaitForChild("HumanoidRootPart")
 
 --===== WAYPOINTS =====--
@@ -27,6 +25,8 @@ local waypoints = {
 }
 
 local jobTruck = Vector3.new(-21795.81, 1052.03, -26799.80)
+
+--===== SETTINGS =====--
 local flySpeed = 250
 local delayTime = 45
 local pingLimit = 180
@@ -35,7 +35,7 @@ local running = false
 local earnings = 0
 local noclipConn, flyConn, bv
 
---===== RAYFIELD UI =====--
+--===== CREATE UI =====--
 local Window = Rayfield:CreateWindow({
     Name = "Premium by Bill",
     LoadingTitle = "Bill Hub",
@@ -55,6 +55,9 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("Main", 4483362458)
+local MainSection = MainTab:CreateSection("Main Section")
+
+-- Slider: Delay Timer
 MainTab:CreateSlider({
     Name = "Delay Timer (detik)",
     Range = {5, 120},
@@ -63,8 +66,10 @@ MainTab:CreateSlider({
     CurrentValue = delayTime,
     Callback = function(value)
         delayTime = value
-    end,
+    end
 })
+
+-- Slider: Fly Speed
 MainTab:CreateSlider({
     Name = "Speed",
     Range = {50, 500},
@@ -73,8 +78,10 @@ MainTab:CreateSlider({
     CurrentValue = flySpeed,
     Callback = function(value)
         flySpeed = value
-    end,
+    end
 })
+
+-- Button: Teleport Job Truck
 MainTab:CreateButton({
     Name = "Teleport Job Truck",
     Callback = function()
@@ -82,11 +89,24 @@ MainTab:CreateButton({
             vehicleRoot.CFrame = CFrame.new(jobTruck + Vector3.new(0,5,0))
             Rayfield:Notify({Title="Teleport", Content="Berhasil teleport ke Job Truck", Duration=3})
         end
-    end,
+    end
 })
+
+-- Input: Nama Player
+MainTab:CreateInput({
+    Name = "Masukkan Nama",
+    PlaceholderText = "Tulis nama kamu ...",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(text)
+        print("Nama:", text)
+    end
+})
+
+-- Toggle: AutoFarm ON/OFF
 MainTab:CreateToggle({
     Name = "AutoFarm ON/OFF",
     CurrentValue = false,
+    Flag = "AutoFarmToggle",
     Callback = function(value)
         running = value
         if value then
@@ -94,17 +114,15 @@ MainTab:CreateToggle({
             startAutoFarm()
         else
             Rayfield:Notify({Title="AutoFarm", Content="AutoFarm Truck dihentikan!", Duration=3})
-            stopAutoFarm()
+            if noclipConn then noclipConn:Disconnect() end
+            if flyConn then flyConn:Disconnect() end
+            if bv then bv:Destroy() end
         end
-    end,
+    end
 })
 
 --===== AUTO FARM FUNCTION =====--
 function startAutoFarm()
-    if noclipConn then noclipConn:Disconnect() end
-    if flyConn then flyConn:Disconnect() end
-    if bv then bv:Destroy() end
-
     noclipConn = RunService.Stepped:Connect(function()
         if not running or not vehicle then return end
         for _, part in pairs(vehicle:GetDescendants()) do
@@ -149,15 +167,9 @@ function startAutoFarm()
     end)
 end
 
-function stopAutoFarm()
-    if noclipConn then noclipConn:Disconnect() end
-    if flyConn then flyConn:Disconnect() end
-    if bv then bv:Destroy() end
-end
-
---===== NOTIFIKASI WELCOME =====--
+-- Welcome Notification
 Rayfield:Notify({
     Title = "Welcome!",
     Content = "Menu Premium by Bill siap digunakan",
-    Duration = 5,
+    Duration = 5
 })
