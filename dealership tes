@@ -1,119 +1,114 @@
---===== SERVICES =====--
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local lp = Players.LocalPlayer
-local root = lp.Character:WaitForChild("HumanoidRootPart")
+--===== LOAD RAYFIELD =====--
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
---===== SETTINGS =====--
-local dealers = {
-    {name="Premium", pos=Vector3.new(351.16,8.19,-286.64)},
-    {name="SLM", pos=Vector3.new(940.53,6.29,-474.83)},
-    {name="Tokoma", pos=Vector3.new(2470.92,5.11,-550.10)},
-    {name="BMR", pos=Vector3.new(3083.91,5.55,-546.16)},
+--===== KEY SYSTEM =====--
+local validKey = "premiumhub" -- key yang harus dimasukkan
+local Window = Rayfield:CreateWindow({
+    Name = "Premium Hub",
+    LoadingTitle = "Bill Hub",
+    LoadingSubtitle = "by Bill",
+    Theme = "Dark",
+    KeySystem = true,
+    KeySettings = {
+        Title = "Enter Key",
+        Subtitle = "Masukkan key untuk akses UI",
+        Note = "Get your key from Discord: https://discord.gg/zXJCmGrCM",
+        SaveKey = true,
+        Key = validKey
+    },
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "PremiumHubConfigs",
+        FileName = "Config1"
+    }
+})
+
+--===== VARIABLES =====--
+local running = false
+local flySpeed = 250
+local delayTime = 45
+local earnings = 0
+
+--===== CREATE TABS =====--
+local AutoFarmTab = Window:CreateTab("AutoFarm", 4483362458)
+local DealerTab = Window:CreateTab("Dealers", 4483362458)
+local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+--===== AUTOFARM SECTION =====--
+AutoFarmTab:CreateSection("AutoFarm Controls")
+
+AutoFarmTab:CreateToggle({
+    Name = "Enable AutoFarm",
+    CurrentValue = false,
+    Flag = "AutoFarmToggle",
+    Callback = function(value)
+        running = value
+        if running then
+            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm Started", Duration=3})
+            -- Di sini kamu bisa panggil fungsi AutoFarm yang lama
+        else
+            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm Stopped", Duration=3})
+        end
+    end
+})
+
+--===== SETTINGS SECTION =====--
+SettingsTab:CreateSection("Settings")
+
+SettingsTab:CreateSlider({
+    Name = "AutoFarm Speed",
+    Range = {50,500},
+    Increment = 10,
+    Suffix = "stud/s",
+    CurrentValue = flySpeed,
+    Callback = function(value)
+        flySpeed = value
+        print("Speed set to", flySpeed)
+    end
+})
+
+SettingsTab:CreateSlider({
+    Name = "Delay Timer",
+    Range = {5,120},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = delayTime,
+    Callback = function(value)
+        delayTime = value
+        print("Delay Timer set to", delayTime)
+    end
+})
+
+--===== DEALER SECTION =====--
+DealerTab:CreateSection("Dealer Teleport")
+
+local dealerCoords = {
+    ["Premium"] = Vector3.new(351.16, 8.19, -286.64),
+    ["SLM"] = Vector3.new(940.53, 6.29, -474.83),
+    ["Tokoma"] = Vector3.new(2470.92, 5.11, -550.10),
+    ["BMR"] = Vector3.new(3083.91, 5.55, -546.16)
 }
 
---===== GUI =====--
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = lp:WaitForChild("PlayerGui")
-ScreenGui.IgnoreGuiInset = true
-
--- Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0,400,0,350)
-MainFrame.Position = UDim2.new(0.5,-200,0.5,-175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-local UICorner = Instance.new("UICorner", MainFrame)
-UICorner.CornerRadius = UDim.new(0,10)
-
--- Header (drag & hide)
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1,0,0,40)
-Header.BackgroundColor3 = Color3.fromRGB(0,120,255)
-Header.Parent = MainFrame
-local HeaderLabel = Instance.new("TextLabel")
-HeaderLabel.Size = UDim2.new(1,0,1,0)
-HeaderLabel.BackgroundTransparency = 1
-HeaderLabel.Text = "Bill Hub Menu"
-HeaderLabel.TextColor3 = Color3.new(1,1,1)
-HeaderLabel.Font = Enum.Font.GothamBold
-HeaderLabel.TextSize = 20
-HeaderLabel.Parent = Header
-
--- Hide Button
-local HideBtn = Instance.new("TextButton")
-HideBtn.Size = UDim2.new(0,35,0,35)
-HideBtn.Position = UDim2.new(1,-40,0,2)
-HideBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
-HideBtn.Text = "X"
-HideBtn.TextColor3 = Color3.new(1,1,1)
-HideBtn.Font = Enum.Font.GothamBold
-HideBtn.TextSize = 18
-HideBtn.Parent = Header
-
-HideBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- Draggable Logic
-local dragging, dragInput, dragStart, startPos
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
+for name, coord in pairs(dealerCoords) do
+    DealerTab:CreateButton({
+        Name = "Teleport to "..name,
+        Callback = function()
+            local lp = game.Players.LocalPlayer
+            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                lp.Character.HumanoidRootPart.CFrame = CFrame.new(coord + Vector3.new(0,5,0))
+                Rayfield:Notify({
+                    Title = "Dealer Teleport",
+                    Content = "Teleported to "..name,
+                    Duration = 3
+                })
             end
-        end)
-    end
-end)
-
-Header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if dragging and dragInput then
-        local delta = dragInput.Position - dragStart
-        MainFrame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
---===== BUTTON CREATION FUNCTION =====--
-local function createButton(text, posY, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0,360,0,35)
-    btn.Position = UDim2.new(0,20,0,posY)
-    btn.BackgroundColor3 = Color3.fromRGB(0,150,255)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 18
-    btn.Text = text
-    btn.Parent = MainFrame
-    btn.MouseButton1Click:Connect(callback)
+        end
+    })
 end
 
---===== BUTTONS =====--
-local y = 50
-createButton("AutoFarm ON/OFF", y, function()
-    print("AutoFarm toggled")
-end)
-y = y + 45
-
-for i,dealer in ipairs(dealers) do
-    createButton("Teleport to "..dealer.name.." Dealer", y, function()
-        root.CFrame = CFrame.new(dealer.pos + Vector3.new(0,5,0))
-    end)
-    y = y + 45
-end
+--===== WELCOME NOTIFICATION =====--
+Rayfield:Notify({
+    Title = "Premium Hub Ready",
+    Content = "Menu UI Loaded Successfully",
+    Duration = 5
+})
