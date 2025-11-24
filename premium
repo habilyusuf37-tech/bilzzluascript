@@ -1,4 +1,4 @@
--- Premium Hub (compressed build)
+-- Premium Hub (Orion Version - Key: premiumhub)
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
@@ -6,20 +6,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Rayfield loader
-local function loadRayfield()
-    for _,link in next,{
-        "https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua",
-        "https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua",
-        "https://raw.githubusercontent.com/UI-Library/Rayfield/main/source.lua"
-    } do
-        local ok,lib=pcall(function()return loadstring(game:HttpGet(link,true))()end)
-        if ok and lib then return lib end
-    end
-end
-
-local Rayfield = loadRayfield()
-if not Rayfield then warn("Rayfield failed") return end
+-- Orion Library (selalu hidup 2025)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
 local function getRemote(name,class,timeout)
     local ok,obj=pcall(function()return ReplicatedStorage:WaitForChild(name,timeout or 5)end)
@@ -35,7 +23,7 @@ local ClaimBoxEvent       = getRemote("ClaimBoxEvent","RemoteEvent")
 local NotifyEvent         = getRemote("NotifyEvent","RemoteEvent")
 
 local function safeFire(r,...) if r then pcall(function() r:FireServer(...) end) end end
-local function safeInvoke(r,...) return r and (pcall(function()return r:InvokeServer(...) end)) or nil end
+local function safeInvoke(r,...) if r then local s,v=pcall(r.InvokeServer,r,...) return s and v end end
 
 local DealerTP = {
     Vector3.new(351.16,8.19,-286.64),
@@ -44,10 +32,10 @@ local DealerTP = {
     Vector3.new(3083.91,5.55,-546.16),
 }
 
--- dealer UI minimal builder
+-- Dealer UI (tetap sama)
 local function dealerUI()
     local s=Instance.new("ScreenGui",PlayerGui) s.Name="DealerUI" s.ResetOnSpawn=false
-    local f=Instance.new("Frame",s) f.Name="MainFrame" f.AnchorPoint=Vector2.new(.5,.5) f.Position=UDim2.new(.5,.5,0,0)
+    local f=Instance.new("Frame",s) f.Name="MainFrame" f.AnchorPoint=Vector2.new(.5,.5) f.Position=UDim2.new(.5,0,.5,0)
     f.Size=UDim2.new(0,720,0,420) f.BackgroundTransparency=.15 f.BackgroundColor3=Color3.fromRGB(30,30,30)
 
     local t=Instance.new("TextLabel",f) t.Name="Title" t.Size=UDim2.new(1,0,0,40)
@@ -68,12 +56,14 @@ end
 
 local GUI
 
+-- Notify dari server (pake Orion notification)
 if NotifyEvent then
     NotifyEvent.OnClientEvent:Connect(function(t,m)
-        Rayfield:Notify({Title=tostring(t),Content=tostring(m),Duration=4})
+        OrionLib:MakeNotification({Name=tostring(t),Content=tostring(m),Duration=4})
     end)
 end
 
+-- Dealer UI dari server
 if OpenDealerClient then
     OpenDealerClient.OnClientEvent:Connect(function(name)
         GUI = GUI or dealerUI()
@@ -93,39 +83,53 @@ if OpenDealerClient then
     end)
 end
 
--- ================= UI ===================
-Rayfield:CreateKeySystem({
-    Title="Premium Hub Key",Note="Key: premiumhub",SaveKey=true,Key="premiumhub",
-    Callback=function()
-        local Window = Rayfield:CreateWindow({Name="PremiumHub",LoadingTitle="PremiumHub",Theme="Dark"})
-        local dealer,tele,af,tpTime="Premium",1,false,3
+-- ==== KEY SYSTEM ORION (key: premiumhub) ====
+OrionLib:InitKeySystem({
+    Title = "Premium Hub",
+    Description = "Masukkan key: premiumhub",
+    Key = "premiumhub",
+    SaveKey = true,
+    Callback = function()
+        OrionLib:MakeNotification({Name = "Success!", Content = "Premium Hub Loaded", Duration = 6})
 
-        local Main = Window:CreateTab("Main")
-        Main:CreateInput({Name="Webhook",Callback=function(t)webhook=t end})
-        Main:CreateToggle({Name="AutoFarm",CurrentValue=false,Callback=function(v)af=v end})
-        Main:CreateButton({Name="Stop Farm",Callback=function()af=false end})
+        local Window = OrionLib:MakeWindow({Name = "PremiumHub", HidePremium = false, SaveConfig = true, ConfigFolder = "PremiumHub"})
 
-        local Stats = Window:CreateTab("Stats")
-        Stats:CreateLabel("Status: Idle"); Stats:CreateLabel("Money: $0")
+        local dealer,tele,af,tpTime = "Premium",1,false,3
+        local webhook = ""
 
-        local Config = Window:CreateTab("Config")
-        Config:CreateSlider({Name="TP Time",Range={1,30},CurrentValue=3,Callback=function(v)tpTime=v end})
+        local Main = Window:MakeTab({Name = "Main"})
+        Main:AddTextbox({Name = "Webhook", Text = "", Callback = function(t) webhook = t end})
+        Main:AddToggle({Name = "AutoFarm", CurrentValue = false, Callback = function(v) af = v end})
+        Main:AddButton({Name = "Stop Farm", Callback = function() af = false end})
 
-        local Box = Window:CreateTab("Box")
-        Box:CreateButton({Name="Daily Box",Callback=function()safeFire(ClaimBoxEvent,"Daily")end})
-        Box:CreateButton({Name="Limited Box",Callback=function()safeFire(ClaimBoxEvent,"Limited")end})
-        Box:CreateButton({Name="Gamepass Box",Callback=function()safeFire(ClaimBoxEvent,"Gamepass")end})
+        local Stats = Window:MakeTab({Name = "Stats"})
+        Stats:AddParagraph("Status","Idle")
+        Stats:AddParagraph("Money","$0")
 
-        local D = Window:CreateTab("Dealership")
-        D:CreateDropdown({Name="Brand",Options={"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"},Callback=function(v)dealer=v end})
-        D:CreateDropdown({Name="Dealer",Options={"Dealer 1","Dealer 2","Dealer 3","Dealer 4"},Callback=function(v)tele=tonumber(v:match("%d+"))end})
-        D:CreateButton({Name="TP Dealer",Callback=function()
-            if TeleportDealerEvent then safeFire(TeleportDealerEvent,tele)
+        local Config = Window:MakeTab({Name = "Config"})
+        Config:AddSlider({Name = "TP Time", Min = 1, Max = 30, Default = 3, Increment = 1, Callback = function(v) tpTime = v end})
+
+        local Box = Window:MakeTab({Name = "Box"})
+        Box:AddButton({Name = "Daily Box", Callback = function() safeFire(ClaimBoxEvent,"Daily") end})
+        Box:AddButton({Name = "Limited Box", Callback = function() safeFire(ClaimBoxEvent,"Limited") end})
+        Box:AddButton({Name = "Gamepass Box", Callback = function() safeFire(ClaimBoxEvent,"Gamepass") end})
+
+        local D = Window:MakeTab({Name = "Dealership"})
+        D:AddDropdown({Name = "Brand", Options = {"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"}, Default = "Premium", Callback = function(v) dealer = v end})
+        D:AddDropdown({Name = "Dealer", Options = {"Dealer 1","Dealer 2","Dealer 3","Dealer 4"}, Default = "Dealer 1", Callback = function(v) tele = tonumber(v:match("%d+")) end})
+        D:AddButton({Name = "TP Dealer", Callback = function()
+            if TeleportDealerEvent then 
+                safeFire(TeleportDealerEvent,tele)
             else
-                local c=LocalPlayer.Character;if c then c:PivotTo(CFrame.new(DealerTP[tele]))end
+                local c = LocalPlayer.Character
+                if c and c:FindFirstChild("HumanoidRootPart") then
+                    c:PivotTo(CFrame.new(DealerTP[tele]))
+                end
             end
         end})
-        D:CreateButton({Name="Open Dealer",Callback=function()safeFire(OpenDealerEvent,dealer)end})
-        D:CreateButton({Name="Buy Car (UI)",Callback=function()Rayfield:Notify({Title="Info",Content="Open a dealer and click buy"})end})
+        D:AddButton({Name = "Open Dealer", Callback = function() safeFire(OpenDealerEvent,dealer) end})
+        D:AddButton({Name = "Buy Car (UI)", Callback = function()
+            OrionLib:MakeNotification({Name = "Info", Content = "Buka dealer dulu lalu klik tombol Buy di UI dealer", Duration = 6})
+        end})
     end
 })
