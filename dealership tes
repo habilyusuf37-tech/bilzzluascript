@@ -1,114 +1,201 @@
 --===== LOAD RAYFIELD =====--
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
---===== KEY SYSTEM =====--
-local validKey = "premiumhub" -- key yang harus dimasukkan
+--===== SERVICES =====--
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local task = task
+
+local lp = Players.LocalPlayer
+local character = lp.Character or lp.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local root = character:WaitForChild("HumanoidRootPart")
+local cam = Workspace.CurrentCamera
+
+--===== VEHICLE (Jika AutoFarm) =====--
+local vehicle = Workspace:WaitForChild("Vehicle") -- ganti sesuai nama vehicle
+local vehicleRoot = vehicle:WaitForChild("PrimaryPart") or vehicle:WaitForChild("HumanoidRootPart")
+
+--===== WAYPOINTS =====--
+local waypoints = {
+    {pos = Vector3.new(-13007.67, 1051.88, -16369.39), radius = 15},
+    {pos = Vector3.new(-38723.95, 1013.15, -62498.38), radius = 20},
+    {pos = Vector3.new(-50885.80, 1012.89, -86516.27), radius = 25},
+    {pos = Vector3.new(-25909.67, 1050.33, -43893.98), radius = 10},
+}
+
+local jobTruck = Vector3.new(-21795.81, 1052.03, -26799.80)
+
+local flySpeed = 250
+local delayTime = 45
+local pingLimit = 180
+local currentWP = 1
+local running = false
+local earnings = 0
+local reachDist = 15
+local noclipConn, flyConn, bv
+
+--===== DEALERS =====--
+local dealers = {
+    Premium = Vector3.new(351.16, 8.19, -286.64),
+    SLM = Vector3.new(940.53, 6.29, -474.83),
+    Tokoma = Vector3.new(2470.92, 5.11, -550.10),
+    BMR = Vector3.new(3083.91, 5.55, -546.16),
+}
+
+--===== CREATE RAYFIELD UI =====--
 local Window = Rayfield:CreateWindow({
-    Name = "Premium Hub",
+    Name = "Premium by Bill",
     LoadingTitle = "Bill Hub",
     LoadingSubtitle = "by Bill",
     Theme = "Dark",
+    ConfigurationSaving = { Enabled = true, FolderName = "PremiumByBillConfigs", FileName = "Config1" },
     KeySystem = true,
     KeySettings = {
         Title = "Enter Key",
-        Subtitle = "Masukkan key untuk akses UI",
-        Note = "Get your key from Discord: https://discord.gg/zXJCmGrCM",
+        Subtitle = "Enter the key to access UI",
+        Note = "Key: premiumhub",
+        FileName = "KeyConfig",
         SaveKey = true,
-        Key = validKey
-    },
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "PremiumHubConfigs",
-        FileName = "Config1"
+        GrabKeyFromSite = false,
+        Key = "premiumhub"
     }
 })
 
---===== VARIABLES =====--
-local running = false
-local flySpeed = 250
-local delayTime = 45
-local earnings = 0
+--===== MAIN TAB =====--
+local MainTab = Window:CreateTab("Main", 4483362458)
+local MainSection = MainTab:CreateSection("Main Section")
 
---===== CREATE TABS =====--
-local AutoFarmTab = Window:CreateTab("AutoFarm", 4483362458)
-local DealerTab = Window:CreateTab("Dealers", 4483362458)
-local SettingsTab = Window:CreateTab("Settings", 4483362458)
+-- Slider Delay Timer
+MainTab:CreateSlider({
+    Name = "Delay Timer (sec)",
+    Range = {5,120},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = 45,
+    Callback = function(value)
+        delayTime = value
+    end,
+})
 
---===== AUTOFARM SECTION =====--
-AutoFarmTab:CreateSection("AutoFarm Controls")
+-- Slider Speed
+MainTab:CreateSlider({
+    Name = "Speed",
+    Range = {50,500},
+    Increment = 10,
+    Suffix = "stud/s",
+    CurrentValue = 250,
+    Callback = function(value)
+        flySpeed = value
+    end,
+})
 
-AutoFarmTab:CreateToggle({
-    Name = "Enable AutoFarm",
+-- Button Teleport Job Truck
+MainTab:CreateButton({
+    Name = "Teleport Job Truck",
+    Callback = function()
+        if vehicleRoot then
+            vehicleRoot.CFrame = CFrame.new(jobTruck + Vector3.new(0,5,0))
+            Rayfield:Notify({Title="Teleport", Content="Teleported to Job Truck", Duration=3})
+        end
+    end,
+})
+
+-- Toggle AutoFarm
+MainTab:CreateToggle({
+    Name = "AutoFarm ON/OFF",
     CurrentValue = false,
     Flag = "AutoFarmToggle",
     Callback = function(value)
         running = value
-        if running then
-            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm Started", Duration=3})
-            -- Di sini kamu bisa panggil fungsi AutoFarm yang lama
+        if value then
+            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm started!", Duration=3})
+            startAutoFarm()
         else
-            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm Stopped", Duration=3})
+            Rayfield:Notify({Title="AutoFarm", Content="AutoFarm stopped!", Duration=3})
+            if noclipConn then noclipConn:Disconnect() end
+            if flyConn then flyConn:Disconnect() end
+            if bv then bv:Destroy() end
         end
-    end
+    end,
 })
 
---===== SETTINGS SECTION =====--
-SettingsTab:CreateSection("Settings")
-
-SettingsTab:CreateSlider({
-    Name = "AutoFarm Speed",
-    Range = {50,500},
-    Increment = 10,
-    Suffix = "stud/s",
-    CurrentValue = flySpeed,
-    Callback = function(value)
-        flySpeed = value
-        print("Speed set to", flySpeed)
-    end
-})
-
-SettingsTab:CreateSlider({
-    Name = "Delay Timer",
-    Range = {5,120},
-    Increment = 1,
-    Suffix = "s",
-    CurrentValue = delayTime,
-    Callback = function(value)
-        delayTime = value
-        print("Delay Timer set to", delayTime)
-    end
-})
-
---===== DEALER SECTION =====--
-DealerTab:CreateSection("Dealer Teleport")
-
-local dealerCoords = {
-    ["Premium"] = Vector3.new(351.16, 8.19, -286.64),
-    ["SLM"] = Vector3.new(940.53, 6.29, -474.83),
-    ["Tokoma"] = Vector3.new(2470.92, 5.11, -550.10),
-    ["BMR"] = Vector3.new(3083.91, 5.55, -546.16)
-}
-
-for name, coord in pairs(dealerCoords) do
+-- Button Dealer Teleport
+local DealerTab = Window:CreateTab("Dealers", 4483362458)
+for name, coord in pairs(dealers) do
     DealerTab:CreateButton({
         Name = "Teleport to "..name,
         Callback = function()
-            local lp = game.Players.LocalPlayer
-            if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                lp.Character.HumanoidRootPart.CFrame = CFrame.new(coord + Vector3.new(0,5,0))
-                Rayfield:Notify({
-                    Title = "Dealer Teleport",
-                    Content = "Teleported to "..name,
-                    Duration = 3
-                })
+            local originalCFrame = root.CFrame
+            local originalCamCF = cam.CFrame
+
+            -- Freeze camera ke dealer
+            cam.CFrame = CFrame.new(coord + Vector3.new(0,5,10), coord)
+
+            -- Cari ProximityPrompt
+            local prompt = Workspace:FindFirstChild(name.."ProximityPrompt")
+            if prompt and prompt:IsA("ProximityPrompt") then
+                prompt:InputHoldBegin()
+                wait(3)
+                prompt:InputHoldEnd()
+                Rayfield:Notify({Title="Dealer", Content="Opened "..name.." Dealer", Duration=3})
             end
+
+            -- Kembalikan posisi dan kamera
+            root.CFrame = originalCFrame
+            cam.CFrame = originalCamCF
         end
     })
 end
 
---===== WELCOME NOTIFICATION =====--
-Rayfield:Notify({
-    Title = "Premium Hub Ready",
-    Content = "Menu UI Loaded Successfully",
-    Duration = 5
-})
+--===== AUTO FARM FUNCTION =====--
+function startAutoFarm()
+    noclipConn = RunService.Stepped:Connect(function()
+        if not running or not vehicle then return end
+        for _, part in pairs(vehicle:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end)
+
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.Parent = vehicleRoot
+
+    flyConn = RunService.Heartbeat:Connect(function()
+        if not running or not vehicleRoot then return end
+
+        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        if ping > pingLimit then
+            bv.Velocity = Vector3.new(0,0,0)
+            task.wait(delayTime)
+            return
+        end
+
+        local target = waypoints[currentWP].pos
+        local dir = (target - vehicleRoot.Position).Unit
+        bv.Velocity = dir * flySpeed + Vector3.new(0,10,0)
+
+        if (vehicleRoot.Position - target).Magnitude < waypoints[currentWP].radius then
+            earnings += math.random(100,500)
+            Rayfield:Notify({Title="Waypoint Reached", Content="Earnings: Rp "..earnings, Duration=2})
+
+            running = false
+            bv.Velocity = Vector3.new(0,0,0)
+            task.spawn(function()
+                for i = delayTime,0,-1 do
+                    Rayfield:Notify({Title="Delay AutoFarm", Content="AutoFarm resumes in "..i.." sec", Duration=1})
+                    task.wait(1)
+                end
+                currentWP = currentWP % #waypoints + 1
+                running = true
+            end)
+        end
+    end)
+end
+
+--===== Welcome Notification =====--
+Rayfield:Notify({Title="Welcome!", Content="Premium by Bill UI ready", Duration=5})
