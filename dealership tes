@@ -1,227 +1,128 @@
 --===== LOAD ORION LIB =====--
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
+--===== SERVICES =====--
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
-local task = task
-
 local lp = Players.LocalPlayer
-local character = lp.Character or lp.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
---===== VEHICLE =====--
-local vehicle = workspace:WaitForChild("Vehicle")
-local vehicleRoot = vehicle:WaitForChild("PrimaryPart") or vehicle:WaitForChild("HumanoidRootPart")
+--===== KEY SETTINGS =====--
+local VALID_KEY = "premiumhub"
+local keyRedeemed = false
 
---===== WAYPOINTS AUTO FARM =====--
-local waypoints = {
-    {pos = Vector3.new(-13007.67, 1051.88, -16369.39), radius = 15},
-    {pos = Vector3.new(-38723.95, 1013.15, -62498.38), radius = 20},
-    {pos = Vector3.new(-50885.80, 1012.89, -86516.27), radius = 25},
-    {pos = Vector3.new(-25909.67, 1050.33, -43893.98), radius = 10},
-}
+--===== GUI =====--
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KeyRedeemGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = lp:WaitForChild("PlayerGui")
 
-local jobTruck = Vector3.new(-21795.81, 1052.03, -26799.80)
-local flySpeed = 250
-local delayTime = 45
-local pingLimit = 180
-local currentWP = 1
-local running = false
-local earnings = 0
-local reachDist = 15
-local noclipConn, flyConn, bv
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 300, 0, 150)
+Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
 
---===== DEALER DATA =====--
-local dealers = {
-    Premium = Vector3.new(351.16, 8.19, -286.64),
-    SLM = Vector3.new(940.53, 6.29, -474.83),
-    Tokoma = Vector3.new(2470.92, 5.11, -550.10),
-    BMR = Vector3.new(3083.91, 5.55, -546.16)
-}
+local UICorner = Instance.new("UICorner")
+UICorner.Parent = Frame
+UICorner.CornerRadius = UDim.new(0, 12)
 
---===== ORION WINDOW =====--
-local Window = OrionLib:MakeWindow({
-    Name = "Bill Hub",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "BillHubConfigs"
-})
+local TextLabel = Instance.new("TextLabel")
+TextLabel.Size = UDim2.new(1,0,0,50)
+TextLabel.Position = UDim2.new(0,0,0,10)
+TextLabel.BackgroundTransparency = 1
+TextLabel.TextColor3 = Color3.fromRGB(255,255,255)
+TextLabel.Font = Enum.Font.GothamBold
+TextLabel.TextSize = 20
+TextLabel.Text = "Enter your key:"
+TextLabel.Parent = Frame
 
---===== TAB: Main =====--
-local MainTab = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483362458",
-    PremiumOnly = false
-})
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 250, 0, 40)
+TextBox.Position = UDim2.new(0.5, -125, 0, 60)
+TextBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+TextBox.TextColor3 = Color3.fromRGB(255,255,255)
+TextBox.Font = Enum.Font.Gotham
+TextBox.TextSize = 18
+TextBox.PlaceholderText = "Type key here"
+TextBox.ClearTextOnFocus = false
+TextBox.Parent = Frame
 
---===== LABEL: Earnings =====--
-local earningsLabel = MainTab:AddLabel({
-    Name = "Total Earnings: Rp 0"
-})
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 200, 0, 30)
+Button.Position = UDim2.new(0.5, -100, 0, 110)
+Button.BackgroundColor3 = Color3.fromRGB(0,150,255)
+Button.TextColor3 = Color3.fromRGB(255,255,255)
+Button.Font = Enum.Font.GothamBold
+Button.TextSize = 18
+Button.Text = "Redeem Key"
+Button.Parent = Frame
 
---===== AUTO FARM SETTINGS =====--
-MainTab:AddSlider({
-    Name = "Speed",
-    Min = 50,
-    Max = 500,
-    Default = 250,
-    Color = Color3.fromRGB(0,255,0),
-    Increment = 10,
-    ValueName = "stud/s",
-    Callback = function(value)
-        flySpeed = value
-    end
-})
+--===== REDEEM FUNCTION =====--
+Button.MouseButton1Click:Connect(function()
+    if TextBox.Text == VALID_KEY then
+        keyRedeemed = true
+        TextLabel.Text = "Key Accepted! ✅"
+        TextBox.Visible = false
+        Button.Visible = false
 
-MainTab:AddSlider({
-    Name = "Delay Timer (s)",
-    Min = 5,
-    Max = 120,
-    Default = 45,
-    Color = Color3.fromRGB(255,255,0),
-    Increment = 1,
-    ValueName = "seconds",
-    Callback = function(value)
-        delayTime = value
-    end
-})
+        -- Notifikasi + Discord link
+        local MsgLabel = Instance.new("TextLabel")
+        MsgLabel.Size = UDim2.new(1,0,0,50)
+        MsgLabel.Position = UDim2.new(0,0,0,60)
+        MsgLabel.BackgroundTransparency = 1
+        MsgLabel.TextColor3 = Color3.fromRGB(255,255,0)
+        MsgLabel.Font = Enum.Font.GothamBold
+        MsgLabel.TextSize = 16
+        MsgLabel.Text = "Join Discord: https://discord.gg/zXJCmGrCM"
+        MsgLabel.Parent = Frame
 
-MainTab:AddToggle({
-    Name = "AutoFarm ON/OFF",
-    Default = false,
-    Callback = function(value)
-        running = value
-        if value then
-            startAutoFarm()
-        else
-            if noclipConn then noclipConn:Disconnect() end
-            if flyConn then flyConn:Disconnect() end
-            if bv then bv:Destroy() end
-        end
-    end
-})
+        -- Tween keluar GUI setelah 3 detik
+        TweenService:Create(Frame, TweenInfo.new(1), {Position=UDim2.new(0.5, -150, -0.5, -75)}):Play()
 
-MainTab:AddButton({
-    Name = "Teleport Job Truck",
-    Callback = function()
-        root.CFrame = CFrame.new(jobTruck + Vector3.new(0,5,0))
-        OrionLib:MakeNotification({
-            Name = "Teleport",
-            Content = "Teleported to Job Truck",
-            Image = "",
-            Time = 3
-        })
-    end
-})
-
---===== AUTO FARM FUNCTION =====--
-function startAutoFarm()
-    noclipConn = RunService.Stepped:Connect(function()
-        if not running or not vehicle then return end
-        for _, part in pairs(vehicle:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end)
-
-    bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-    bv.Velocity = Vector3.new(0,0,0)
-    bv.Parent = vehicleRoot
-
-    flyConn = RunService.Heartbeat:Connect(function()
-        if not running or not vehicleRoot then return end
-
-        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
-        if ping > pingLimit then
-            bv.Velocity = Vector3.new(0,0,0)
-            task.wait(delayTime)
-            return
-        end
-
-        local target = waypoints[currentWP].pos
-        local dir = (target - vehicleRoot.Position).Unit
-        bv.Velocity = dir * flySpeed + Vector3.new(0,10,0)
-
-        if (vehicleRoot.Position - target).Magnitude < waypoints[currentWP].radius then
-            local earned = math.random(100,500)
-            earnings += earned
-            earningsLabel:Set("Total Earnings: Rp "..earnings)
-            OrionLib:MakeNotification({
-                Name = "Waypoint Reached",
-                Content = "Earned Rp "..earned,
-                Image = "",
-                Time = 2
+        task.delay(1, function()
+            ScreenGui:Destroy()
+            --===== LOAD ORION AFTER KEY =====--
+            local Window = OrionLib:MakeWindow({
+                Name = "Bill Hub",
+                HidePremium = false,
+                SaveConfig = true,
+                ConfigFolder = "BillHubConfigs",
+                ToggleKey = Enum.KeyCode.RightShift
             })
 
-            running = false
-            bv.Velocity = Vector3.new(0,0,0)
-            task.spawn(function()
-                for i = delayTime,0,-1 do
+            local MainTab = Window:MakeTab({
+                Name = "Main",
+                Icon = "rbxassetid://4483362458",
+                PremiumOnly = false
+            })
+
+            MainTab:AddButton({
+                Name = "Test AutoFarm",
+                Callback = function()
                     OrionLib:MakeNotification({
-                        Name = "AutoFarm Delay",
-                        Content = "Next waypoint in "..i.."s",
-                        Image = "",
-                        Time = 1
+                        Name="AutoFarm",
+                        Content="AutoFarm button clicked!",
+                        Time=3
                     })
-                    task.wait(1)
                 end
-                currentWP = currentWP % #waypoints + 1
-                running = true
-            end)
-        end
-    end)
-end
-
---===== TAB: Dealer =====--
-local DealerTab = Window:MakeTab({
-    Name = "Dealers",
-    Icon = "rbxassetid://4483362458",
-    PremiumOnly = false
-})
-
-local function openDealer(pos)
-    local originalPos = root.CFrame
-    local overlay = Instance.new("Frame")
-    overlay.Size = UDim2.new(1,0,1,0)
-    overlay.BackgroundColor3 = Color3.new(0,0,0)
-    overlay.BackgroundTransparency = 0.5
-    overlay.ZIndex = 10
-    overlay.Parent = lp.PlayerGui
-
-    root.CFrame = CFrame.new(pos + Vector3.new(0,3,0))
-    task.wait(0.3)
-
-    local region = Region3.new(pos - Vector3.new(5,5,5), pos + Vector3.new(5,5,5))
-    local parts = workspace:FindPartsInRegion3WithWhiteList(region, workspace:GetDescendants(), math.huge)
-
-    for _, part in ipairs(parts) do
-        if part:IsA("ProximityPrompt") then
-            part:InputHoldBegin()
-            task.wait(3)
-            part:InputHoldEnd()
-            OrionLib:MakeNotification({
-                Name = "Dealer Opened",
-                Content = "Opened dealer at "..tostring(pos),
-                Image = "",
-                Time = 2
             })
-            break
-        end
+
+            MainTab:AddButton({
+                Name = "Teleport to Premium Dealer",
+                Callback = function()
+                    OrionLib:MakeNotification({
+                        Name="Dealer",
+                        Content="Teleport button clicked!",
+                        Time=3
+                    })
+                end
+            })
+
+            OrionLib:Init()
+        end)
+    else
+        TextLabel.Text = "Wrong Key! ❌"
     end
-
-    root.CFrame = originalPos
-    overlay:Destroy()
-end
-
-for name, pos in pairs(dealers) do
-    DealerTab:AddButton({
-        Name = "Open "..name.." Dealer",
-        Callback = function()
-            openDealer(pos)
-        end
-    })
-end
-
-OrionLib:Init()
+end)
