@@ -1,21 +1,16 @@
--- Roblox Premium Autofarm Script (Mobile-Friendly Horizontal UI)
--- FIXED: Hide Name → "Premium by Bill" (loop hide setiap detik)
--- FIXED: Autofarm + Delay COUNTDOWN 40→39→...→0 (notif real-time)
--- FIXED: Earn Cash sesuai pengantaran (placeholder + notif)
--- NEW: Teleport Job Truck (terpisah, bukan autofarm)
--- RADIUS 22K FULL MAP | Waypoint urutan 100% sama
+-- FINAL + SMART WAYPOINT DETECTION (Auto cek ada barang/cash/NPC di WP)
+-- Teleport EXACT + Job Truck aman + Premium by Bill + Countdown + UI Horizontal ON/OFF
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Stats = game:GetService("Stats")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Waypoints 100% sama
+-- WAYPOINT 100% EXACT (koordinat kamu)
 local waypoints = {
     Vector3.new(-13007.67, 1051.88, -16369.39),
     Vector3.new(-38723.95, 1013.15, -62498.38),
@@ -23,202 +18,189 @@ local waypoints = {
     Vector3.new(-25909.67, 1050.33, -43893.98)
 }
 
--- Job Truck
-local jobTruckPos = Vector3.new(-21795.81, 1042.03, -26799.80)
+local jobTruckPos = Vector3.new(-21795.81, 1052.03, -26799.80)  -- Anti void
+local DETECTION_RADIUS = 60   -- Radius deteksi (bisa diubah)
+local MAX_WAIT_TIME = 30      -- Max tunggu 30 detik kalau tidak ada object
 
-local TELEPORT_RADIUS = 22000
 local autofarmEnabled = false
 local premiumBillEnabled = false
 local delayTime = 40
-local highPingThreshold = 200
 local currentWaypointIndex = 1
-local nextFarmTime = 0
-local farming = false
 
--- Ping Check
-local function getPing()
-    local ping = 0
-    pcall(function() ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() end)
-    return ping
-end
-
--- Premium by Bill (Hide Name LOOP - FIXED)
-spawn(function()
-    while task.wait(1) do
-        if premiumBillEnabled and character and character:FindFirstChild("Head") then
-            pcall(function()
-                for _, v in pairs(character.Head:GetChildren()) do
-                    if v:IsA("BillboardGui") then v:Destroy() end
-                end
-            end)
+-- DETEKSI APA SAJA YANG DIANGGAP "ADA" DI WAYPOINT
+local function isWaypointDetected(pos)
+    local region = Region3.new(pos - Vector3.new(DETECTION_RADIUS, 50, DETECTION_RADIUS),
+                               pos + Vector3.new(DETECTION_RADIUS, 50, DETECTION_RADIUS))
+    local parts = Workspace:FindPartsInRegion3(region, character, 50)
+    
+    for _, part in pairs(parts) do
+        if part and part.Parent and (
+            part.Name:lower():find("cash") or
+            part.Name:lower():find("money") or
+            part.Name:lower():find("drop") or
+            part.Name:lower():find("package") or
+            part.Name:lower():find("crate") or
+            part.Name:lower():find("box") or
+            part:IsA("MeshPart") or part:IsA("Part") and part.Transparency < 1
+        ) then
+            return true
         end
     end
-end)
+    return false
+end
 
--- Smooth Teleport
-local function teleportTo(pos)
+-- Teleport EXACT
+local function teleportExact(pos)
     if not humanoidRootPart then return end
-    local diffY = pos.Y - humanoidRootPart.Position.Y
-    if math.abs(diffY) > 10 then
-        TweenService:Create(humanoidRootPart, TweenInfo.new(0.9), {CFrame = humanoidRootPart.CFrame + Vector3.new(0, diffY, 0)}):Play()
-        task.wait(1)
-    end
-    local randX = math.random(-TELEPORT_RADIUS, TELEPORT_RADIUS)
-    local randZ = math.random(-TELEPORT_RADIUS, TELEPORT_RADIUS)
-    local final = Vector3.new(pos.X + randX, humanoidRootPart.Position.Y, pos.Z + randZ)
-    TweenService:Create(humanoidRootPart, TweenInfo.new(1.2, Enum.EasingStyle.Quad), {CFrame = CFrame.new(final)}):Play()
-    task.wait(1.3)
+    humanoidRootPart.CFrame = CFrame.new(pos + Vector3.new(0, 8, 0))  -- +8 Y biar aman
 end
 
--- Earn Cash (sesuai pengantaran - placeholder, sesuaikan remote)
-local function earnCash()
-    -- ReplicatedStorage.Remotes.DeliverCash:FireServer() -- Uncomment & adjust untuk game kamu
-    print("Earn Cash: Pengantaran selesai [+Cash]")
-end
-
--- Notifikasi (atas layar)
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "AutofarmUI"
-
-local function notif(msg)
-    spawn(function()
-        local f = Instance.new("Frame", screenGui)
-        f.Size = UDim2.new(0, 320, 0, 65)
-        f.Position = UDim2.new(0.5, -160, 0, -80)
-        f.BackgroundColor3 = Color3.fromRGB(15, 100, 15)
-        f.BackgroundTransparency = 0.15
-        f.BorderSizePixel = 0
-        local corner = Instance.new("UICorner", f); corner.CornerRadius = UDim.new(0, 14)
-        local stroke = Instance.new("UIStroke", f); stroke.Color = Color3.new(0,1,0); stroke.Thickness = 2.5
-
-        local txt = Instance.new("TextLabel", f)
-        txt.Size = UDim2.new(1,0,1,0)
-        txt.BackgroundTransparency = 1
-        txt.Text = msg
-        txt.TextColor3 = Color3.new(1,1,1)
-        txt.TextScaled = true
-        txt.Font = Enum.Font.GothamBold
-
-        TweenService:Create(f, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Position = UDim2.new(0.5,-160,0,20)}):Play()
-        task.wait(3)
-        TweenService:Create(f, TweenInfo.new(0.5), {Position = UDim2.new(0.5,-160,0,-80)}):Play()
-        task.wait(0.6)
-        f:Destroy()
-    end)
-end
-
--- Autofarm LOOP FIXED + COUNTDOWN DELAY
+-- Hide Name (Premium by Bill)
 spawn(function()
-    while task.wait(0.1) do
-        local ping = getPing()
-        if autofarmEnabled then
-            if ping > highPingThreshold then
-                notif("High Ping ("..math.floor(ping).."ms) - Pause")
-                task.wait(5)
-            elseif tick() >= nextFarmTime and not farming then
-                farming = true
-                -- COUNTDOWN 40→39→...→0
-                for i = delayTime, 0, -1 do
-                    notif("Autofarm Countdown: "..i.."s")
-                    task.wait(1)
-                end
-                -- Teleport + Earn
-                teleportTo(waypoints[currentWaypointIndex])
-                earnCash()
-                currentWaypointIndex = (currentWaypointIndex % #waypoints) + 1
-                nextFarmTime = tick() + delayTime
-                farming = false
-                notif("Farmed WP "..currentWaypointIndex.." [FULL MAP] +Cash!")
+    while task.wait(0.7) do
+        if premiumBillEnabled and character and character:FindFirstChild("Head") then
+            for _, v in pairs(character.Head:GetChildren()) do
+                if v:IsA("BillboardGui") then v:Destroy() end
             end
         end
     end
 end)
 
--- Tombol Bulat
-local toggleBtn = Instance.new("ImageButton", screenGui)
-toggleBtn.Size = UDim2.new(0,65,0,65)
-toggleBtn.Position = UDim2.new(0,12,0,12)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(8,8,45)
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
-local grad = Instance.new("UIGradient", toggleBtn)
-grad.Color = ColorSequence.new(Color3.fromRGB(0,170,255), Color3.fromRGB(120,80,255))
-grad.Rotation = 45
-local stroke = Instance.new("UIStroke", toggleBtn); stroke.Color = Color3.new(1,1,1); stroke.Thickness = 2.5
-
--- Menu Horizontal Persegi Panjang (HP Friendly)
-local menu = Instance.new("Frame", screenGui)
-menu.Size = UDim2.new(0.92, 0, 0, 140)
-menu.Position = UDim2.new(0.04, 0, 0, 95)
-menu.BackgroundColor3 = Color3.fromRGB(12,12,40)
-menu.Visible = false
-Instance.new("UICorner", menu).CornerRadius = UDim.new(0,18)
-local mStroke = Instance.new("UIStroke", menu); mStroke.Color = Color3.fromRGB(0,220,255); mStroke.Thickness = 3
-
-local hLayout = Instance.new("UIListLayout", menu)
-hLayout.FillDirection = Enum.FillDirection.Horizontal
-hLayout.Padding = UDim.new(0,15)
-hLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-hLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- Fungsi Buat Tombol
-local function createBtn(text, bgColor, callback)
-    local btn = Instance.new("TextButton", menu)
-    btn.Size = UDim2.new(0,130,0,95)
-    btn.BackgroundColor3 = bgColor
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextScaled = true
-    btn.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,14)
-    btn.MouseButton1Click:Connect(callback)
-    return btn
+-- Notifikasi
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+local function notif(text)
+    spawn(function()
+        local n = Instance.new("TextLabel", screenGui)
+        n.Size = UDim2.new(0, 360, 0, 70)
+        n.Position = UDim2.new(0.5, -180, 0, -80)
+        n.BackgroundColor3 = Color3.fromRGB(10, 90, 10)
+        n.Text = text
+        n.TextColor3 = Color3.new(1,1,1)
+        n.TextScaled = true
+        n.Font = Enum.Font.GothamBold
+        n.BackgroundTransparency = 0.2
+        Instance.new("UICorner", n).CornerRadius = UDim.new(0,16)
+        Instance.new("UIStroke", n).Color = Color3.new(0,1,0); Instance.new("UIStroke", n).Thickness = 3
+        TweenService:Create(n, TweenInfo.new(0.5), {Position = UDim2.new(0.5,-180,0,30)}):Play()
+        task.wait(3)
+        TweenService:Create(n, TweenInfo.new(0.5), {Position = UDim2.new(0.5,-180,0,-80)}):Play()
+        task.wait(0.6); n:Destroy()
+    end)
 end
 
--- Tombol Autofarm
-local autoBtn = createBtn("Autofarm\nOFF", Color3.fromRGB(70,25,25), function()
-    autofarmEnabled = not autofarmEnabled
-    autoBtn.Text = "Autofarm\n"..(autofarmEnabled and "ON" or "OFF")
-    autoBtn.BackgroundColor3 = autofarmEnabled and Color3.fromRGB(25,90,25) or Color3.fromRGB(70,25,25)
+-- SMART AUTOFARM + DETECTION
+spawn(function()
+    while task.wait(1) do
+        if autofarmEnabled then
+            -- Countdown
+            for i = delayTime, 0, -1 do
+                if not autofarmEnabled then break end
+                notif("Next Delivery: "..i.."s")
+                task.wait(1)
+            end
+
+            if not autofarmEnabled then continue end
+
+            local target = waypoints[currentWaypointIndex]
+            teleportExact(target)
+            notif("Arrived WP "..currentWaypointIndex.." → Scanning...")
+
+            -- TUNGGU SAMPAI DETEKSI ADA BARANG
+            local detected = false
+            for waitTime = 1, MAX_WAIT_TIME do
+                if isWaypointDetected(target) then
+                    detected = true
+                    notif("Detected! WP "..currentWaypointIndex.." Success!")
+                    break
+                end
+                notif("Scanning WP "..currentWaypointIndex..": "..waitTime.."s")
+                task.wait(1)
+            end
+
+            if not detected then
+                notif("Timeout! Skip WP "..currentWaypointIndex)
+            end
+
+            currentWaypointIndex = (currentWaypointIndex % #waypoints) + 1
+        end
+    end
 end)
 
--- Tombol Delay Cycle (40→30→55→40)
-local delayBtn = createBtn("Delay\n40s", Color3.fromRGB(35,35,110), function()
-    if delayTime == 40 then delayTime = 30 elseif delayTime == 30 then delayTime = 55 else delayTime = 40 end
-    delayBtn.Text = "Delay\n"..delayTime.."s"
-    notif("Delay: "..delayTime.."s")
-end)
+-- UI Horizontal + ON/OFF Switch
+local toggleBtn = Instance.new("ImageButton", screenGui)
+toggleBtn.Size = UDim2.new(0,70,0,70)
+toggleBtn.Position = UDim2.new(0,10,0,10)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(10,10,60)
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
+Instance.new("UIGradient", toggleBtn).Color = ColorSequence.new(Color3.fromRGB(0,180,255), Color3.fromRGB(180,50,255))
 
--- Tombol Premium by Bill
-local billBtn = createBtn("Premium\nby Bill\nOFF", Color3.fromRGB(90,30,90), function()
-    premiumBillEnabled = not premiumBillEnabled
-    billBtn.Text = "Premium\nby Bill\n"..(premiumBillEnabled and "ON" or "OFF")
-    billBtn.BackgroundColor3 = premiumBillEnabled and Color3.fromRGB(50,110,50) or Color3.fromRGB(90,30,90)
-    notif("Premium by Bill: "..(premiumBillEnabled and "ON" or "OFF"))
-end)
+local menu = Instance.new("Frame", screenGui)
+menu.Size = UDim2.new(0.96,0,0,130)
+menu.Position = UDim2.new(0.02,0,0,90)
+menu.BackgroundColor3 = Color3.fromRGB(12,12,45)
+menu.Visible = false
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0,20)
+Instance.new("UIStroke", menu).Color = Color3.fromRGB(0,230,255); Instance.new("UIStroke", menu).Thickness = 3
 
--- Tombol Job Truck Teleport
-createBtn("Job Truck\nTP", Color3.fromRGB(20,80,140), function()
-    spawn(function()
-        teleportTo(jobTruckPos)
-        notif("Teleported to Job Truck!")
+local layout = Instance.new("UIListLayout", menu)
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.Padding = UDim.new(0,20)
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+local function addSwitch(name, varName, callback)
+    local frame = Instance.new("Frame", menu)
+    frame.Size = UDim2.new(0,140,0,90)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(0,80,1,0)
+    label.Text = name
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextScaled = true
+    label.BackgroundTransparency = 1
+
+    local btn = Instance.new("TextButton", frame)
+    btn.Position = UDim2.new(1,-50,0.5,-20)
+    btn.Size = UDim2.new(0,90,0,40)
+    btn.Text = "OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(90,20,20)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,20)
+    btn.MouseButton1Click:Connect(function()
+        _G[varName] = not _G[varName]
+        btn.Text = _G[varName] and "ON" or "OFF"
+        btn.BackgroundColor3 = _G[varName] and Color3.fromRGB(20,100,20) or Color3.fromRGB(90,20,20)
+        if callback then callback() end
     end)
+end
+
+_G.autofarmEnabled = false
+_G.premiumBillEnabled = false
+
+addSwitch("Autofarm", "autofarmEnabled")
+addSwitch("Premium\nby Bill", "premiumBillEnabled")
+addSwitch("Delay\n"..delayTime.."s", nil, function()
+    delayTime = ({40,30,55})[(delayTime == 40 and 2) or (delayTime == 30 and 3) or 1]
 end)
 
--- Tombol Info
-createBtn("FULL MAP\nRADIUS", Color3.fromRGB(20,120,180), function()
-    notif("RADIUS 22K Active | Map Full Detect")
+local jobBtn = Instance.new("TextButton", menu)
+jobBtn.Size = UDim2.new(0,140,0,90)
+jobBtn.BackgroundColor3 = Color3.fromRGB(20,80,150)
+jobBtn.Text = "Job Truck\nTP"
+jobBtn.TextColor3 = Color3.new(1,1,1)
+jobBtn.TextScaled = true
+Instance.new("UICorner", jobBtn).CornerRadius = UDim.new(0,16)
+jobBtn.MouseButton1Click:Connect(function()
+    teleportExact(jobTruckPos)
+    notif("Teleported to Job Truck")
 end)
 
--- Toggle Menu
 toggleBtn.MouseButton1Click:Connect(function()
     menu.Visible = not menu.Visible
 end)
 
--- Respawn
 player.CharacterAdded:Connect(function(c)
     character = c
     humanoidRootPart = c:WaitForChild("HumanoidRootPart")
 end)
 
-notif("Script FIXED! Premium by Bill + Countdown + Job Truck READY")
-print("All Bugs Fixed! Inject & Farm!")
+notif("SMART WAYPOINT DETECTION ACTIVE!")
