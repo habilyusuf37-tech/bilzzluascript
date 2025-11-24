@@ -1,4 +1,4 @@
--- Premium Hub (Orion Version - Key: premiumhub)
+-- Premium Hub (Kavo Version - Key: premiumhub)
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 local Players = game:GetService("Players")
@@ -6,8 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Orion Library (selalu hidup 2025)
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+-- Kavo Library (link hidup 100% November 2025)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("PremiumHub", "DarkTheme")
 
 local function getRemote(name,class,timeout)
     local ok,obj=pcall(function()return ReplicatedStorage:WaitForChild(name,timeout or 5)end)
@@ -56,10 +57,10 @@ end
 
 local GUI
 
--- Notify dari server (pake Orion notification)
+-- Notify dari server (pake Kavo notification)
 if NotifyEvent then
     NotifyEvent.OnClientEvent:Connect(function(t,m)
-        OrionLib:MakeNotification({Name=tostring(t),Content=tostring(m),Duration=4})
+        Library:Notify("PremiumHub", tostring(t) .. ": " .. tostring(m), 4)
     end)
 end
 
@@ -83,41 +84,54 @@ if OpenDealerClient then
     end)
 end
 
--- ==== KEY SYSTEM ORION (key: premiumhub) ====
-OrionLib:InitKeySystem({
-    Title = "Premium Hub",
-    Description = "Masukkan key: premiumhub",
-    Key = "premiumhub",
-    SaveKey = true,
-    Callback = function()
-        OrionLib:MakeNotification({Name = "Success!", Content = "Premium Hub Loaded", Duration = 6})
+-- ==== KEY SYSTEM KAVO (key: premiumhub) ====
+local KeyInput = Library:CreateWindow({
+    Title = "Premium Hub Key",
+    Size = UDim2.new(0, 300, 0, 150),
+    Position = UDim2.new(0.5, -150, 0.5, -75)
+}).CreateTextbox({
+    Name = "Masukkan Key",
+    Default = "",
+    Placeholder = "Key: premiumhub",
+    Size = UDim2.new(1, 0, 0, 30),
+    Position = UDim2.new(0, 0, 0, 50)
+})
 
-        local Window = OrionLib:MakeWindow({Name = "PremiumHub", HidePremium = false, SaveConfig = true, ConfigFolder = "PremiumHub"})
-
+KeyInput.OnChanged(function(text)
+    if text == "premiumhub" then
+        Library:Notify("Success!", "Key valid! Premium Hub Loaded", 6)
+        KeyInput:Destroy()
+        
+        -- UI SESUDAH KEY VALID
         local dealer,tele,af,tpTime = "Premium",1,false,3
         local webhook = ""
 
-        local Main = Window:MakeTab({Name = "Main"})
-        Main:AddTextbox({Name = "Webhook", Text = "", Callback = function(t) webhook = t end})
-        Main:AddToggle({Name = "AutoFarm", CurrentValue = false, Callback = function(v) af = v end})
-        Main:AddButton({Name = "Stop Farm", Callback = function() af = false end})
+        local MainTab = Window:NewTab("Main")
+        local MainSection = MainTab:NewSection("Main Features")
+        MainSection:NewTextBox("Webhook", "Enter webhook URL", function(t) webhook = t end)
+        MainSection:NewToggle("AutoFarm", "Enable/Disable AutoFarm", function(state) af = state end)
+        MainSection:NewButton("Stop Farm", "Stop AutoFarm", function() af = false end)
 
-        local Stats = Window:MakeTab({Name = "Stats"})
-        Stats:AddParagraph("Status","Idle")
-        Stats:AddParagraph("Money","$0")
+        local StatsTab = Window:NewTab("Stats")
+        local StatsSection = StatsTab:NewSection("Player Stats")
+        StatsSection:NewLabel("Status: Idle")
+        StatsSection:NewLabel("Money: $0")
 
-        local Config = Window:MakeTab({Name = "Config"})
-        Config:AddSlider({Name = "TP Time", Min = 1, Max = 30, Default = 3, Increment = 1, Callback = function(v) tpTime = v end})
+        local ConfigTab = Window:NewTab("Config")
+        local ConfigSection = ConfigTab:NewSection("Settings")
+        ConfigSection:NewSlider("TP Time", "Teleport delay (seconds)", 1, 30, function(s) tpTime = s end)
 
-        local Box = Window:MakeTab({Name = "Box"})
-        Box:AddButton({Name = "Daily Box", Callback = function() safeFire(ClaimBoxEvent,"Daily") end})
-        Box:AddButton({Name = "Limited Box", Callback = function() safeFire(ClaimBoxEvent,"Limited") end})
-        Box:AddButton({Name = "Gamepass Box", Callback = function() safeFire(ClaimBoxEvent,"Gamepass") end})
+        local BoxTab = Window:NewTab("Box")
+        local BoxSection = BoxTab:NewSection("Claim Boxes")
+        BoxSection:NewButton("Daily Box", "Claim Daily", function() safeFire(ClaimBoxEvent,"Daily") end)
+        BoxSection:NewButton("Limited Box", "Claim Limited", function() safeFire(ClaimBoxEvent,"Limited") end)
+        BoxSection:NewButton("Gamepass Box", "Claim Gamepass", function() safeFire(ClaimBoxEvent,"Gamepass") end)
 
-        local D = Window:MakeTab({Name = "Dealership"})
-        D:AddDropdown({Name = "Brand", Options = {"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"}, Default = "Premium", Callback = function(v) dealer = v end})
-        D:AddDropdown({Name = "Dealer", Options = {"Dealer 1","Dealer 2","Dealer 3","Dealer 4"}, Default = "Dealer 1", Callback = function(v) tele = tonumber(v:match("%d+")) end})
-        D:AddButton({Name = "TP Dealer", Callback = function()
+        local DealerTab = Window:NewTab("Dealership")
+        local DealerSection = DealerTab:NewSection("Dealer Tools")
+        DealerSection:NewDropdown("Brand", "Select Brand", {"Premium","SLM","Toyota","BMR","Nissan","Retro","Mizada","Hyundai"}, function(v) dealer = v end)
+        DealerSection:NewDropdown("Dealer", "Select Dealer", {"Dealer 1","Dealer 2","Dealer 3","Dealer 4"}, function(v) tele = tonumber(v:match("%d+")) end)
+        DealerSection:NewButton("TP Dealer", "Teleport to Dealer", function()
             if TeleportDealerEvent then 
                 safeFire(TeleportDealerEvent,tele)
             else
@@ -126,10 +140,14 @@ OrionLib:InitKeySystem({
                     c:PivotTo(CFrame.new(DealerTP[tele]))
                 end
             end
-        end})
-        D:AddButton({Name = "Open Dealer", Callback = function() safeFire(OpenDealerEvent,dealer) end})
-        D:AddButton({Name = "Buy Car (UI)", Callback = function()
-            OrionLib:MakeNotification({Name = "Info", Content = "Buka dealer dulu lalu klik tombol Buy di UI dealer", Duration = 6})
-        end})
+        end)
+        DealerSection:NewButton("Open Dealer", "Open Dealer Menu", function() safeFire(OpenDealerEvent,dealer) end)
+        DealerSection:NewButton("Buy Car (UI)", "Buy via Dealer UI", function()
+            Library:Notify("Info", "Buka dealer dulu lalu klik tombol Buy di UI dealer", 6)
+        end)
+    else
+        if text ~= "" and text ~= "premiumhub" then
+            Library:Notify("Error", "Key salah! Coba lagi: premiumhub", 4)
+        end
     end
-})
+end)
