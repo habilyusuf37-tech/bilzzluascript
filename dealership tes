@@ -1,18 +1,21 @@
 --===== SERVICES =====--
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local task = task
+
 local lp = Players.LocalPlayer
 local character = lp.Character or lp.CharacterAdded:Wait()
 local root = character:WaitForChild("HumanoidRootPart")
 
---===== VARIABLES =====--
-local running = false
-local delayTime = 5
+--===== PATH DEALER =====--
 local dealers = {
     workspace:WaitForChild("Etc"):WaitForChild("Dealership"),
     workspace:WaitForChild("Map"):WaitForChild("BSD2"):GetChildren()[1441]:WaitForChild("DealershipCars")
 }
+
+--===== VARIABLES =====--
+local running = false
+local delayTime = 5
+local method = "RemoteEvent" -- default method
 
 --===== SCREENGUI =====--
 local gui = Instance.new("ScreenGui")
@@ -21,7 +24,7 @@ gui.Parent = lp:WaitForChild("PlayerGui")
 gui.IgnoreGuiInset = true
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 250, 0, 150)
+main.Size = UDim2.new(0, 300, 0, 200)
 main.Position = UDim2.new(0, 50, 0, 50)
 main.BackgroundColor3 = Color3.fromRGB(30,30,30)
 main.BorderSizePixel = 0
@@ -44,7 +47,7 @@ statusLabel.Parent = main
 
 --===== BUTTON ON/OFF =====--
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 200, 0, 30)
+toggleBtn.Size = UDim2.new(0, 250, 0, 30)
 toggleBtn.Position = UDim2.new(0, 25, 0, 50)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
 toggleBtn.Text = "Start Auto Open Dealer"
@@ -53,10 +56,39 @@ toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 14
 toggleBtn.Parent = main
 
+--===== METHOD DROPDOWN =====--
+local methodLabel = Instance.new("TextLabel")
+methodLabel.Size = UDim2.new(1, -10, 0, 20)
+methodLabel.Position = UDim2.new(0,5,0,90)
+methodLabel.BackgroundTransparency = 1
+methodLabel.TextColor3 = Color3.new(1,1,1)
+methodLabel.Font = Enum.Font.Gotham
+methodLabel.TextSize = 12
+methodLabel.Text = "Method: "..method
+methodLabel.Parent = main
+
+local methodDropdown = Instance.new("TextButton")
+methodDropdown.Size = UDim2.new(0, 120, 0, 20)
+methodDropdown.Position = UDim2.new(0, 150, 0, 90)
+methodDropdown.BackgroundColor3 = Color3.fromRGB(80,80,80)
+methodDropdown.Text = method
+methodDropdown.TextColor3 = Color3.new(1,1,1)
+methodDropdown.Parent = main
+
+local options = {"RemoteEvent", "RemoteFunction", "ProximityPrompt"}
+
+methodDropdown.MouseButton1Click:Connect(function()
+    local current = table.find(options, method)
+    current = current % #options + 1
+    method = options[current]
+    methodDropdown.Text = method
+    methodLabel.Text = "Method: "..method
+end)
+
 --===== SLIDER DELAY =====--
 local sliderLabel = Instance.new("TextLabel")
 sliderLabel.Size = UDim2.new(1, -10, 0, 20)
-sliderLabel.Position = UDim2.new(0,5,0,90)
+sliderLabel.Position = UDim2.new(0,5,0,120)
 sliderLabel.BackgroundTransparency = 1
 sliderLabel.TextColor3 = Color3.new(1,1,1)
 sliderLabel.Font = Enum.Font.Gotham
@@ -66,7 +98,7 @@ sliderLabel.Parent = main
 
 local slider = Instance.new("TextBox")
 slider.Size = UDim2.new(0, 100, 0, 20)
-slider.Position = UDim2.new(0, 70, 0, 90)
+slider.Position = UDim2.new(0, 150, 0, 120)
 slider.BackgroundColor3 = Color3.fromRGB(80,80,80)
 slider.Text = tostring(delayTime)
 slider.TextColor3 = Color3.new(1,1,1)
@@ -84,25 +116,29 @@ end)
 
 --===== FUNCTION: Trigger Dealer =====--
 local function triggerDealer(dealer)
-    local openEvent = dealer:FindFirstChild("OpenDealerEvent")
-    if openEvent then
-        openEvent:FireServer()
-        return
-    end
-    local openFunc = dealer:FindFirstChild("OpenDealerFunction")
-    if openFunc then
-        openFunc:InvokeServer()
-        return
-    end
-    local prompt = dealer:FindFirstChildWhichIsA("ProximityPrompt")
-    if prompt then
-        local origPos = root.Position
-        root.CFrame = CFrame.new(dealer:GetModelCFrame().p + Vector3.new(0,5,0))
-        prompt:InputHoldBegin()
-        task.wait(1)
-        prompt:InputHoldEnd()
-        root.CFrame = CFrame.new(origPos)
-        return
+    if method == "RemoteEvent" then
+        local evt = dealer:FindFirstChild("OpenDealerEvent")
+        if evt then
+            evt:FireServer()
+            print("Dealer dibuka via RemoteEvent:", dealer.Name)
+        end
+    elseif method == "RemoteFunction" then
+        local func = dealer:FindFirstChild("OpenDealerFunction")
+        if func then
+            func:InvokeServer()
+            print("Dealer dibuka via RemoteFunction:", dealer.Name)
+        end
+    elseif method == "ProximityPrompt" then
+        local prompt = dealer:FindFirstChildWhichIsA("ProximityPrompt")
+        if prompt then
+            local origPos = root.Position
+            root.CFrame = CFrame.new(dealer:GetModelCFrame().p + Vector3.new(0,5,0))
+            prompt:InputHoldBegin()
+            task.wait(1)
+            prompt:InputHoldEnd()
+            root.CFrame = CFrame.new(origPos)
+            print("Dealer dibuka via ProximityPrompt:", dealer.Name)
+        end
     end
 end
 
