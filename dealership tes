@@ -1,128 +1,139 @@
---===== LOAD ORION LIB =====--
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
-
 --===== SERVICES =====--
 local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local lp = Players.LocalPlayer
+local character = lp.Character or lp.CharacterAdded:Wait()
+local root = character:WaitForChild("HumanoidRootPart")
 
---===== KEY SETTINGS =====--
+--===== SETTINGS =====--
 local VALID_KEY = "premiumhub"
-local keyRedeemed = false
+local dealers = {
+    {name="Premium", pos=Vector3.new(351.16,8.19,-286.64)},
+    {name="SLM", pos=Vector3.new(940.53,6.29,-474.83)},
+    {name="Tokoma", pos=Vector3.new(2470.92,5.11,-550.10)},
+    {name="BMR", pos=Vector3.new(3083.91,5.55,-546.16)},
+}
+
+local autoFarmRunning = false
+local earnings = 0
+local delayTime = 45
+local flySpeed = 250
 
 --===== GUI =====--
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KeyRedeemGui"
-ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = lp:WaitForChild("PlayerGui")
+ScreenGui.IgnoreGuiInset = true
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 300, 0, 150)
-Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
-Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
+--===== KEY FRAME =====--
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Size = UDim2.new(0, 350, 0, 180)
+KeyFrame.Position = UDim2.new(0.5,-175,0.5,-90)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+KeyFrame.Parent = ScreenGui
+Instance.new("UICorner", KeyFrame)
 
-local UICorner = Instance.new("UICorner")
-UICorner.Parent = Frame
-UICorner.CornerRadius = UDim.new(0, 12)
+local KeyLabel = Instance.new("TextLabel")
+KeyLabel.Size = UDim2.new(1,0,0,50)
+KeyLabel.Position = UDim2.new(0,0,0,10)
+KeyLabel.BackgroundTransparency = 1
+KeyLabel.TextColor3 = Color3.new(1,1,1)
+KeyLabel.Text = "Enter Key:"
+KeyLabel.Font = Enum.Font.GothamBold
+KeyLabel.TextSize = 20
+KeyLabel.Parent = KeyFrame
 
-local TextLabel = Instance.new("TextLabel")
-TextLabel.Size = UDim2.new(1,0,0,50)
-TextLabel.Position = UDim2.new(0,0,0,10)
-TextLabel.BackgroundTransparency = 1
-TextLabel.TextColor3 = Color3.fromRGB(255,255,255)
-TextLabel.Font = Enum.Font.GothamBold
-TextLabel.TextSize = 20
-TextLabel.Text = "Enter your key:"
-TextLabel.Parent = Frame
+local KeyBox = Instance.new("TextBox")
+KeyBox.Size = UDim2.new(0,250,0,40)
+KeyBox.Position = UDim2.new(0.5,-125,0,60)
+KeyBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+KeyBox.TextColor3 = Color3.new(1,1,1)
+KeyBox.PlaceholderText = "Type key here"
+KeyBox.ClearTextOnFocus = false
+KeyBox.Font = Enum.Font.Gotham
+KeyBox.TextSize = 18
+KeyBox.Parent = KeyFrame
 
-local TextBox = Instance.new("TextBox")
-TextBox.Size = UDim2.new(0, 250, 0, 40)
-TextBox.Position = UDim2.new(0.5, -125, 0, 60)
-TextBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
-TextBox.TextColor3 = Color3.fromRGB(255,255,255)
-TextBox.Font = Enum.Font.Gotham
-TextBox.TextSize = 18
-TextBox.PlaceholderText = "Type key here"
-TextBox.ClearTextOnFocus = false
-TextBox.Parent = Frame
+local KeyButton = Instance.new("TextButton")
+KeyButton.Size = UDim2.new(0,200,0,35)
+KeyButton.Position = UDim2.new(0.5,-100,0,120)
+KeyButton.BackgroundColor3 = Color3.fromRGB(0,150,255)
+KeyButton.TextColor3 = Color3.new(1,1,1)
+KeyButton.Text = "Redeem Key"
+KeyButton.Font = Enum.Font.GothamBold
+KeyButton.TextSize = 18
+KeyButton.Parent = KeyFrame
 
-local Button = Instance.new("TextButton")
-Button.Size = UDim2.new(0, 200, 0, 30)
-Button.Position = UDim2.new(0.5, -100, 0, 110)
-Button.BackgroundColor3 = Color3.fromRGB(0,150,255)
-Button.TextColor3 = Color3.fromRGB(255,255,255)
-Button.Font = Enum.Font.GothamBold
-Button.TextSize = 18
-Button.Text = "Redeem Key"
-Button.Parent = Frame
+--===== MAIN MENU FRAME =====--
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0,400,0,400)
+MainFrame.Position = UDim2.new(0.5,-200,0.5,-200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame)
 
---===== REDEEM FUNCTION =====--
-Button.MouseButton1Click:Connect(function()
-    if TextBox.Text == VALID_KEY then
-        keyRedeemed = true
-        TextLabel.Text = "Key Accepted! ✅"
-        TextBox.Visible = false
-        Button.Visible = false
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1,0,0,50)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextColor3 = Color3.fromRGB(255,255,0)
+TitleLabel.Text = "Bill Hub"
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 24
+TitleLabel.Parent = MainFrame
 
-        -- Notifikasi + Discord link
-        local MsgLabel = Instance.new("TextLabel")
-        MsgLabel.Size = UDim2.new(1,0,0,50)
-        MsgLabel.Position = UDim2.new(0,0,0,60)
-        MsgLabel.BackgroundTransparency = 1
-        MsgLabel.TextColor3 = Color3.fromRGB(255,255,0)
-        MsgLabel.Font = Enum.Font.GothamBold
-        MsgLabel.TextSize = 16
-        MsgLabel.Text = "Join Discord: https://discord.gg/zXJCmGrCM"
-        MsgLabel.Parent = Frame
+--===== BUTTON CREATION FUNCTION =====--
+local function createButton(text, positionY, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0,350,0,35)
+    btn.Position = UDim2.new(0.5,-175,0,positionY)
+    btn.BackgroundColor3 = Color3.fromRGB(0,150,255)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 18
+    btn.Text = text
+    btn.Parent = MainFrame
+    btn.MouseButton1Click:Connect(callback)
+end
 
-        -- Tween keluar GUI setelah 3 detik
-        TweenService:Create(Frame, TweenInfo.new(1), {Position=UDim2.new(0.5, -150, -0.5, -75)}):Play()
+--===== ADD BUTTONS =====--
+local y = 60
+createButton("AutoFarm ON/OFF", y, function()
+    autoFarmRunning = not autoFarmRunning
+    print("AutoFarm:", autoFarmRunning)
+end)
+y += 50
 
-        task.delay(1, function()
-            ScreenGui:Destroy()
-            --===== LOAD ORION AFTER KEY =====--
-            local Window = OrionLib:MakeWindow({
-                Name = "Bill Hub",
-                HidePremium = false,
-                SaveConfig = true,
-                ConfigFolder = "BillHubConfigs",
-                ToggleKey = Enum.KeyCode.RightShift
-            })
+createButton("Teleport to Premium Dealer", y, function()
+    root.CFrame = CFrame.new(dealers[1].pos + Vector3.new(0,5,0))
+end)
+y += 50
 
-            local MainTab = Window:MakeTab({
-                Name = "Main",
-                Icon = "rbxassetid://4483362458",
-                PremiumOnly = false
-            })
+createButton("Teleport to SLM Dealer", y, function()
+    root.CFrame = CFrame.new(dealers[2].pos + Vector3.new(0,5,0))
+end)
+y += 50
 
-            MainTab:AddButton({
-                Name = "Test AutoFarm",
-                Callback = function()
-                    OrionLib:MakeNotification({
-                        Name="AutoFarm",
-                        Content="AutoFarm button clicked!",
-                        Time=3
-                    })
-                end
-            })
+createButton("Teleport to Tokoma Dealer", y, function()
+    root.CFrame = CFrame.new(dealers[3].pos + Vector3.new(0,5,0))
+end)
+y += 50
 
-            MainTab:AddButton({
-                Name = "Teleport to Premium Dealer",
-                Callback = function()
-                    OrionLib:MakeNotification({
-                        Name="Dealer",
-                        Content="Teleport button clicked!",
-                        Time=3
-                    })
-                end
-            })
+createButton("Teleport to BMR Dealer", y, function()
+    root.CFrame = CFrame.new(dealers[4].pos + Vector3.new(0,5,0))
+end)
+y += 50
 
-            OrionLib:Init()
-        end)
+--===== KEY REDEEM LOGIC =====--
+KeyButton.MouseButton1Click:Connect(function()
+    if KeyBox.Text == VALID_KEY then
+        KeyLabel.Text = "Key Accepted ✅"
+        task.wait(1)
+        KeyFrame.Visible = false
+        MainFrame.Visible = true
+        print("Menu unlocked! Join Discord: https://discord.gg/zXJCmGrCM")
     else
-        TextLabel.Text = "Wrong Key! ❌"
+        KeyLabel.Text = "Wrong Key ❌"
     end
 end)
