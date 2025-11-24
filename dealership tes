@@ -1,166 +1,227 @@
---===== SERVICES =====--
+--===== LOAD ORION LIB =====--
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
 local task = task
 
 local lp = Players.LocalPlayer
 local character = lp.Character or lp.CharacterAdded:Wait()
 local root = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
---===== PATH DEALER =====--
-local dealers = {
-    workspace:WaitForChild("Etc"):WaitForChild("Dealership"),
-    workspace:WaitForChild("Map"):WaitForChild("BSD2"):GetChildren()[1441]:WaitForChild("DealershipCars")
+--===== VEHICLE =====--
+local vehicle = workspace:WaitForChild("Vehicle")
+local vehicleRoot = vehicle:WaitForChild("PrimaryPart") or vehicle:WaitForChild("HumanoidRootPart")
+
+--===== WAYPOINTS AUTO FARM =====--
+local waypoints = {
+    {pos = Vector3.new(-13007.67, 1051.88, -16369.39), radius = 15},
+    {pos = Vector3.new(-38723.95, 1013.15, -62498.38), radius = 20},
+    {pos = Vector3.new(-50885.80, 1012.89, -86516.27), radius = 25},
+    {pos = Vector3.new(-25909.67, 1050.33, -43893.98), radius = 10},
 }
 
---===== VARIABLES =====--
+local jobTruck = Vector3.new(-21795.81, 1052.03, -26799.80)
+local flySpeed = 250
+local delayTime = 45
+local pingLimit = 180
+local currentWP = 1
 local running = false
-local delayTime = 5
-local method = "RemoteEvent" -- default method
+local earnings = 0
+local reachDist = 15
+local noclipConn, flyConn, bv
 
---===== SCREENGUI =====--
-local gui = Instance.new("ScreenGui")
-gui.Name = "DealerTesterUI"
-gui.Parent = lp:WaitForChild("PlayerGui")
-gui.IgnoreGuiInset = true
+--===== DEALER DATA =====--
+local dealers = {
+    Premium = Vector3.new(351.16, 8.19, -286.64),
+    SLM = Vector3.new(940.53, 6.29, -474.83),
+    Tokoma = Vector3.new(2470.92, 5.11, -550.10),
+    BMR = Vector3.new(3083.91, 5.55, -546.16)
+}
 
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 300, 0, 200)
-main.Position = UDim2.new(0, 50, 0, 50)
-main.BackgroundColor3 = Color3.fromRGB(30,30,30)
-main.BorderSizePixel = 0
-main.Parent = gui
+--===== ORION WINDOW =====--
+local Window = OrionLib:MakeWindow({
+    Name = "Bill Hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "BillHubConfigs"
+})
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0,8)
-UICorner.Parent = main
+--===== TAB: Main =====--
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
 
---===== STATUS LABEL =====--
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -10, 0, 30)
-statusLabel.Position = UDim2.new(0, 5, 0, 5)
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.new(1,1,1)
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 14
-statusLabel.Text = "Status: OFF"
-statusLabel.Parent = main
+--===== LABEL: Earnings =====--
+local earningsLabel = MainTab:AddLabel({
+    Name = "Total Earnings: Rp 0"
+})
 
---===== BUTTON ON/OFF =====--
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 250, 0, 30)
-toggleBtn.Position = UDim2.new(0, 25, 0, 50)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-toggleBtn.Text = "Start Auto Open Dealer"
-toggleBtn.TextColor3 = Color3.new(1,1,1)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
-toggleBtn.Parent = main
-
---===== METHOD DROPDOWN =====--
-local methodLabel = Instance.new("TextLabel")
-methodLabel.Size = UDim2.new(1, -10, 0, 20)
-methodLabel.Position = UDim2.new(0,5,0,90)
-methodLabel.BackgroundTransparency = 1
-methodLabel.TextColor3 = Color3.new(1,1,1)
-methodLabel.Font = Enum.Font.Gotham
-methodLabel.TextSize = 12
-methodLabel.Text = "Method: "..method
-methodLabel.Parent = main
-
-local methodDropdown = Instance.new("TextButton")
-methodDropdown.Size = UDim2.new(0, 120, 0, 20)
-methodDropdown.Position = UDim2.new(0, 150, 0, 90)
-methodDropdown.BackgroundColor3 = Color3.fromRGB(80,80,80)
-methodDropdown.Text = method
-methodDropdown.TextColor3 = Color3.new(1,1,1)
-methodDropdown.Parent = main
-
-local options = {"RemoteEvent", "RemoteFunction", "ProximityPrompt"}
-
-methodDropdown.MouseButton1Click:Connect(function()
-    local current = table.find(options, method)
-    current = current % #options + 1
-    method = options[current]
-    methodDropdown.Text = method
-    methodLabel.Text = "Method: "..method
-end)
-
---===== SLIDER DELAY =====--
-local sliderLabel = Instance.new("TextLabel")
-sliderLabel.Size = UDim2.new(1, -10, 0, 20)
-sliderLabel.Position = UDim2.new(0,5,0,120)
-sliderLabel.BackgroundTransparency = 1
-sliderLabel.TextColor3 = Color3.new(1,1,1)
-sliderLabel.Font = Enum.Font.Gotham
-sliderLabel.TextSize = 12
-sliderLabel.Text = "Delay: "..delayTime.."s"
-sliderLabel.Parent = main
-
-local slider = Instance.new("TextBox")
-slider.Size = UDim2.new(0, 100, 0, 20)
-slider.Position = UDim2.new(0, 150, 0, 120)
-slider.BackgroundColor3 = Color3.fromRGB(80,80,80)
-slider.Text = tostring(delayTime)
-slider.TextColor3 = Color3.new(1,1,1)
-slider.Parent = main
-
-slider.FocusLost:Connect(function(enter)
-    local num = tonumber(slider.Text)
-    if num and num >= 1 then
-        delayTime = num
-        sliderLabel.Text = "Delay: "..delayTime.."s"
-    else
-        slider.Text = tostring(delayTime)
+--===== AUTO FARM SETTINGS =====--
+MainTab:AddSlider({
+    Name = "Speed",
+    Min = 50,
+    Max = 500,
+    Default = 250,
+    Color = Color3.fromRGB(0,255,0),
+    Increment = 10,
+    ValueName = "stud/s",
+    Callback = function(value)
+        flySpeed = value
     end
-end)
+})
 
---===== FUNCTION: Trigger Dealer =====--
-local function triggerDealer(dealer)
-    if method == "RemoteEvent" then
-        local evt = dealer:FindFirstChild("OpenDealerEvent")
-        if evt then
-            evt:FireServer()
-            print("Dealer dibuka via RemoteEvent:", dealer.Name)
-        end
-    elseif method == "RemoteFunction" then
-        local func = dealer:FindFirstChild("OpenDealerFunction")
-        if func then
-            func:InvokeServer()
-            print("Dealer dibuka via RemoteFunction:", dealer.Name)
-        end
-    elseif method == "ProximityPrompt" then
-        local prompt = dealer:FindFirstChildWhichIsA("ProximityPrompt")
-        if prompt then
-            local origPos = root.Position
-            root.CFrame = CFrame.new(dealer:GetModelCFrame().p + Vector3.new(0,5,0))
-            prompt:InputHoldBegin()
-            task.wait(1)
-            prompt:InputHoldEnd()
-            root.CFrame = CFrame.new(origPos)
-            print("Dealer dibuka via ProximityPrompt:", dealer.Name)
+MainTab:AddSlider({
+    Name = "Delay Timer (s)",
+    Min = 5,
+    Max = 120,
+    Default = 45,
+    Color = Color3.fromRGB(255,255,0),
+    Increment = 1,
+    ValueName = "seconds",
+    Callback = function(value)
+        delayTime = value
+    end
+})
+
+MainTab:AddToggle({
+    Name = "AutoFarm ON/OFF",
+    Default = false,
+    Callback = function(value)
+        running = value
+        if value then
+            startAutoFarm()
+        else
+            if noclipConn then noclipConn:Disconnect() end
+            if flyConn then flyConn:Disconnect() end
+            if bv then bv:Destroy() end
         end
     end
+})
+
+MainTab:AddButton({
+    Name = "Teleport Job Truck",
+    Callback = function()
+        root.CFrame = CFrame.new(jobTruck + Vector3.new(0,5,0))
+        OrionLib:MakeNotification({
+            Name = "Teleport",
+            Content = "Teleported to Job Truck",
+            Image = "",
+            Time = 3
+        })
+    end
+})
+
+--===== AUTO FARM FUNCTION =====--
+function startAutoFarm()
+    noclipConn = RunService.Stepped:Connect(function()
+        if not running or not vehicle then return end
+        for _, part in pairs(vehicle:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end)
+
+    bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    bv.Velocity = Vector3.new(0,0,0)
+    bv.Parent = vehicleRoot
+
+    flyConn = RunService.Heartbeat:Connect(function()
+        if not running or not vehicleRoot then return end
+
+        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        if ping > pingLimit then
+            bv.Velocity = Vector3.new(0,0,0)
+            task.wait(delayTime)
+            return
+        end
+
+        local target = waypoints[currentWP].pos
+        local dir = (target - vehicleRoot.Position).Unit
+        bv.Velocity = dir * flySpeed + Vector3.new(0,10,0)
+
+        if (vehicleRoot.Position - target).Magnitude < waypoints[currentWP].radius then
+            local earned = math.random(100,500)
+            earnings += earned
+            earningsLabel:Set("Total Earnings: Rp "..earnings)
+            OrionLib:MakeNotification({
+                Name = "Waypoint Reached",
+                Content = "Earned Rp "..earned,
+                Image = "",
+                Time = 2
+            })
+
+            running = false
+            bv.Velocity = Vector3.new(0,0,0)
+            task.spawn(function()
+                for i = delayTime,0,-1 do
+                    OrionLib:MakeNotification({
+                        Name = "AutoFarm Delay",
+                        Content = "Next waypoint in "..i.."s",
+                        Image = "",
+                        Time = 1
+                    })
+                    task.wait(1)
+                end
+                currentWP = currentWP % #waypoints + 1
+                running = true
+            end)
+        end
+    end)
 end
 
---===== AUTO OPEN DEALER LOOP =====--
-local autoOpenThread
-toggleBtn.MouseButton1Click:Connect(function()
-    running = not running
-    if running then
-        toggleBtn.Text = "Stop Auto Open Dealer"
-        statusLabel.Text = "Status: ON"
-        autoOpenThread = task.spawn(function()
-            while running do
-                for _, dealer in ipairs(dealers) do
-                    if dealer then
-                        triggerDealer(dealer)
-                    end
-                end
-                task.wait(delayTime)
-            end
-        end)
-    else
-        toggleBtn.Text = "Start Auto Open Dealer"
-        statusLabel.Text = "Status: OFF"
+--===== TAB: Dealer =====--
+local DealerTab = Window:MakeTab({
+    Name = "Dealers",
+    Icon = "rbxassetid://4483362458",
+    PremiumOnly = false
+})
+
+local function openDealer(pos)
+    local originalPos = root.CFrame
+    local overlay = Instance.new("Frame")
+    overlay.Size = UDim2.new(1,0,1,0)
+    overlay.BackgroundColor3 = Color3.new(0,0,0)
+    overlay.BackgroundTransparency = 0.5
+    overlay.ZIndex = 10
+    overlay.Parent = lp.PlayerGui
+
+    root.CFrame = CFrame.new(pos + Vector3.new(0,3,0))
+    task.wait(0.3)
+
+    local region = Region3.new(pos - Vector3.new(5,5,5), pos + Vector3.new(5,5,5))
+    local parts = workspace:FindPartsInRegion3WithWhiteList(region, workspace:GetDescendants(), math.huge)
+
+    for _, part in ipairs(parts) do
+        if part:IsA("ProximityPrompt") then
+            part:InputHoldBegin()
+            task.wait(3)
+            part:InputHoldEnd()
+            OrionLib:MakeNotification({
+                Name = "Dealer Opened",
+                Content = "Opened dealer at "..tostring(pos),
+                Image = "",
+                Time = 2
+            })
+            break
+        end
     end
-end)
+
+    root.CFrame = originalPos
+    overlay:Destroy()
+end
+
+for name, pos in pairs(dealers) do
+    DealerTab:AddButton({
+        Name = "Open "..name.." Dealer",
+        Callback = function()
+            openDealer(pos)
+        end
+    })
+end
+
+OrionLib:Init()
