@@ -1,5 +1,7 @@
+--===== LOAD RAYFIELD DARI URL =====--
+local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua"))()
+
 --===== SERVICES =====--
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
@@ -34,8 +36,6 @@ local reachDist = 15
 local noclipConn, flyConn, bv
 
 --===== RAYFIELD UI =====--
-local Rayfield = require(ReplicatedStorage:WaitForChild("Rayfield"))
-
 local Window = Rayfield:CreateWindow({
     Name = "Premium by Bill",
     LoadingTitle = "Bill Hub",
@@ -133,7 +133,6 @@ MainTab:CreateToggle({
 
 --===== AUTO FARM FUNCTION =====--
 function startAutoFarm()
-    -- Noclip vehicle
     noclipConn = RunService.Stepped:Connect(function()
         if not running or not vehicle then return end
         for _, part in pairs(vehicle:GetDescendants()) do
@@ -141,13 +140,11 @@ function startAutoFarm()
         end
     end)
 
-    -- BodyVelocity
     bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1e5,1e5,1e5)
     bv.Velocity = Vector3.new(0,0,0)
     bv.Parent = vehicleRoot
 
-    -- Fly loop
     flyConn = RunService.Heartbeat:Connect(function()
         if not running or not vehicleRoot then return end
 
@@ -166,7 +163,6 @@ function startAutoFarm()
             earnings += math.random(100,500)
             Rayfield:Notify({Title="Waypoint Reached", Content="Earnings: Rp "..earnings, Duration=2})
 
-            -- Delay sebelum ke waypoint berikutnya
             running = false
             bv.Velocity = Vector3.new(0,0,0)
             task.spawn(function()
