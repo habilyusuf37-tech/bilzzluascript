@@ -1,0 +1,181 @@
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+Rayfield:Notify({
+    Title = "Element Hub",
+    Content = "Loading UI...",
+    Duration = 2
+})
+
+local Window = Rayfield:CreateWindow({
+    Name = "Element Hub",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "Element Hub UI",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ElementHub",
+        FileName = "ConfigUI"
+    }
+})
+
+------------------------------------------------------------
+-- TAB: AUTOFARM
+------------------------------------------------------------
+local Autofarm = Window:CreateTab("Autofarm", 4483362458)
+Autofarm:CreateDropdown({Name="Select Truck", Options={"Truck A","Truck B","Truck C"}, CurrentOption={}, Flag="SelectTruck"})
+Autofarm:CreateButton({Name="Start Autofarm", Callback=function() print("Autofarm Started") end})
+
+------------------------------------------------------------
+-- TAB: STATS
+------------------------------------------------------------
+local Stats = Window:CreateTab("Stats", 4483362458)
+Stats:CreateLabel("Received Money: 0")
+Stats:CreateLabel("Earning Money: 0")
+Stats:CreateLabel("Time: 0")
+Stats:CreateLabel("Delay: 0")
+
+------------------------------------------------------------
+-- TAB: CONFIGURATION
+------------------------------------------------------------
+local Config = Window:CreateTab("Configuration", 4483362458)
+Config:CreateSlider({Name="Autofarm Delay", Range={0,10}, Increment=1, CurrentValue=1, Flag="AutofarmDelay"})
+
+------------------------------------------------------------
+-- TAB: SPECIAL FITUR (dulunya Teleport)
+------------------------------------------------------------
+local Special = Window:CreateTab("Special Fitur", 4483362458)
+
+-- Teleport UI → DI-FIX 100% PAKAI PATH BARU (LANGSUNG JALAN!)
+Special:CreateButton({
+    Name = "Teleport UI",
+    Callback = function()
+        local prompt = workspace.Etc.TransCDID.BSD:FindFirstChild("Prompt")
+        
+        if prompt and prompt:IsA("ProximityPrompt") then
+            fireproximityprompt(prompt)
+            Rayfield:Notify({Title="Success", Content="Teleport UI berhasil dibuka!", Duration=3})
+        else
+            Rayfield:Notify({Title="Error", Content="Prompt Teleport UI tidak ditemukan!", Duration=4})
+        end
+    end
+})
+
+-- Wash Car
+Special:CreateButton({
+    Name = "Wash Car",
+    Callback = function()
+        local wash = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Wash") 
+            and workspace.Etc.Wash:GetChildren()[2]
+            and workspace.Etc.Wash:GetChildren()[2]:FindFirstChild("Prompt")
+        
+        if wash then
+            fireproximityprompt(wash)
+            Rayfield:Notify({Title="Success", Content="Mobil sedang dicuci!", Duration=3})
+        else
+            Rayfield:Notify({Title="Error", Content="Prompt Wash tidak ditemukan!", Duration=3})
+        end
+    end
+})
+
+-- Upgrade Vehicle Slot
+Special:CreateButton({
+    Name = "Upgrade Vehicle Slot",
+    Callback = function()
+        local prompt = workspace:FindFirstChild("Etc") 
+            and workspace.Etc:FindFirstChild("Upgrade") 
+            and workspace.Etc.Upgrade:FindFirstChild("Upgrade") 
+            and workspace.Etc.Upgrade.Upgrade:FindFirstChild("Prompt")
+        
+        if prompt then
+            fireproximityprompt(prompt)
+            Rayfield:Notify({Title="Success", Content="Upgrade slot berhasil dibuka!", Duration=3})
+        else
+            Rayfield:Notify({Title="Error", Content="Prompt Upgrade tidak ditemukan!", Duration=3})
+        end
+    end
+})
+
+-- Fuel Car (Work untuk semua mobil - auto cari prompt yang aktif)
+Special:CreateButton({
+    Name = "Fuel Car (All Vehicle)",
+    Callback = function()
+        local found = false
+        local fuelFolder = workspace:FindFirstChild("Etc") and workspace.Etc:FindFirstChild("Car") and workspace.Etc.Car:FindFirstChild("FuelFiller")
+        
+        if fuelFolder then
+            for _, obj in ipairs(fuelFolder:GetDescendants()) do
+                if obj.Name == "Prompt" and obj:IsA("ProximityPrompt") then
+                    fireproximityprompt(obj)
+                    found = true
+                    Rayfield:Notify({Title="Success", Content="Mobil berhasil diisi bensin!", Duration=3})
+                    break
+                end
+            end
+        end
+        
+        if not found then
+            Rayfield:Notify({Title="Error", Content="Tidak ada prompt bensin ditemukan!", Duration=4})
+        end
+    end
+})
+
+------------------------------------------------------------
+-- TAB: BOX (SUDAH JALAN)
+------------------------------------------------------------
+local Box = Window:CreateTab("Box", 4483362458)
+Box:CreateButton({Name="Claim Reward", Callback=function()
+    game:GetService("ReplicatedStorage").NetworkContainer.RemoteEvents.Box:FireServer("Claim")
+    Rayfield:Notify({Title="Success", Content="Reward di-claim!", Duration=3})
+end})
+Box:CreateButton({Name="Buy Limited Box", Callback=function()
+    game:GetService("ReplicatedStorage").NetworkContainer.RemoteEvents.Box:FireServer("Buy", "Limited Box")
+    Rayfield:Notify({Title="Success", Content="Limited Box dibeli!", Duration=3})
+end})
+Box:CreateButton({Name="Buy Gamepass Box", Callback=function()
+    game:GetService("ReplicatedStorage").NetworkContainer.RemoteEvents.Box:FireServer("Buy", "Gamepass Box")
+    Rayfield:Notify({Title="Success", Content="Gamepass Box dibeli!", Duration=3})
+end})
+
+------------------------------------------------------------
+-- TAB: DEALERSHIP (SUDAH 100% FIX SEMUA DEALER)
+------------------------------------------------------------
+local Dealer = Window:CreateTab("Dealership", 4483362458)
+
+local DealerMap = {
+    ["Premium"]="Premium",["Otnas"]="Otnas",["Retro"]="Bandung",["BMR"]="BMW",["Tokoma"]="Toyota",
+    ["Mercedes"]="MercedesBenz",["Dealer 77"]="77",["Hyundai"]="Hyundai",["kia"]="KIA",["komersial"]="Komersial",
+    ["mazda"]="mazda_special",["Nissan"]="Nissan",["SLM"]="SLM",["suzuki"]="Suzuki",["densu"]="Daihatsu",
+    ["honade"]="Honda",["wuling"]="Wuling"
+}
+
+Dealer:CreateDropdown({
+    Name="Select Dealer",
+    Options={"Premium","Otnas","Retro","BMR","Tokoma","Mercedes","Dealer 77","Hyundai","kia","komersial","mazda","Nissan","SLM","suzuki","densu","honade","wuling"},
+    CurrentOption={}, Flag="SelectDealer"
+})
+
+Dealer:CreateButton({
+    Name="Open Dealership",
+    Callback=function()
+        local sel = Rayfield.Flags.SelectDealer.CurrentOption[1]
+        if not sel then Rayfield:Notify({Title="Error", Content="Pilih dealer dulu!", Duration=3}) return end
+        
+        local real = DealerMap[sel]
+        local Prompt
+        
+        if sel == "mazda" then
+            local c = workspace.Etc.Dealership:GetChildren()
+            if c[13] then Prompt = c[13]:FindFirstChild("Prompt") end
+        else
+            local f = workspace.Etc.Dealership:FindFirstChild(real)
+            if f then Prompt = f:FindFirstChild("Prompt") end
+        end
+        
+        if Prompt and Prompt:IsA("ProximityPrompt") then
+            fireproximityprompt(Prompt)
+            Rayfield:Notify({Title="Success", Content=sel.." berhasil dibuka!", Duration=3})
+        else
+            Rayfield:Notify({Title="Error", Content="Dealer tidak ditemukan!", Duration=3})
+        end
+    end
+})
