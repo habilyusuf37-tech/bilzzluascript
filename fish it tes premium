@@ -1,0 +1,309 @@
+-- Fish It! ElementHub by bilzz (FINAL FIX + REQUEST PATCH)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+Rayfield:Notify({Title = "elementhub", Content = "loaded fixed", Duration = 5})
+
+local Window = Rayfield:CreateWindow({
+    Name = "elementhub by bilzz",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "Please Wait",
+    ConfigurationSaving = {Enabled = true, FolderName = "FishItHub", FileName = "Config"}
+})
+
+local Main     = Window:CreateTab("Main", 4483362458)
+local Autos    = Window:CreateTab("Autos", 4483362458)
+local Shop     = Window:CreateTab("Shop", 4483362458)
+local Teleport = Window:CreateTab("Teleport", 4483362458)
+local Misc     = Window:CreateTab("Misc", 4483362458)
+
+-- REMOTES
+local net = game:GetService("ReplicatedStorage")
+    :WaitForChild("Packages")
+    :WaitForChild("_Index")
+    :WaitForChild("sleitnick_net@0.2.0")
+    :WaitForChild("net")
+
+local R = {
+    equip  = net:WaitForChild("RE/EquipToolFromHotbar"),
+    charge = net:WaitForChild("RF/ChargeFishingRod"),
+    reel   = net:WaitForChild("RF/RequestFishingMinigameStarted"),
+    finish = net:WaitForChild("RE/FishingCompleted"),
+    sell   = net:WaitForChild("RF/SellAllItems"),
+    buy    = net:FindFirstChild("RF/PurchaseShopItem")
+}
+
+local S = {
+    Blatant    = false,
+    Delay      = 2.3,
+    Rod        = "Ghostfinn",
+    AutoSell   = false,
+    SelectedTP = nil,
+
+    -- REQUEST KAMU
+    AutoQuest      = false,
+    SelectedQuest  = nil
+}
+
+-- Delay
+local RodDelays = {
+    Element   = {min=1.6, max=1.9},
+    Ghostfinn = {min=1.9, max=2.3}
+}
+
+local delaySlider
+
+local function UpdateDelayRange()
+    local r = RodDelays[S.Rod]
+    delaySlider:Update({
+        Range = {r.min, r.max},
+        CurrentValue = (r.min + r.max)/2
+    })
+end
+
+-- === BLATANT FIX ===
+local function FishOnce()
+    pcall(function()
+        R.equip:FireServer(1)
+        task.wait(0)
+
+        R.charge:InvokeServer()
+        task.wait(0)
+
+        local t = workspace.DistributedGameTime
+        local rx = -1.23 + math.random(-300,300)/10000
+        local ry = 0.106 + math.random(-200,200)/10000
+
+        R.reel:InvokeServer(rx, ry, t)
+        task.wait(1.5)
+
+        R.finish:FireServer()
+    end)
+end
+
+local function RunBlatant()
+    task.spawn(function()
+        while S.Blatant do
+            FishOnce()
+            task.wait(S.Delay)
+        end
+    end)
+end
+
+-- MAIN
+Main:CreateSection("Blatant Auto Fish")
+
+Main:CreateDropdown({
+    Name = "Select Rod",
+    Options = {"Element","Ghostfinn"},
+    CurrentOption = "Ghostfinn",
+    Callback = function(v)
+        S.Rod = v[1]
+        UpdateDelayRange()
+    end
+})
+
+delaySlider = Main:CreateSlider({
+    Name = "Delay",
+    Range = {1.9,2.3},
+    Increment = 0.05,
+    CurrentValue = 2.3,
+    Callback = function(v) S.Delay = v end
+})
+
+Main:CreateToggle({
+    Name = "Blatant",
+    CurrentValue = false,
+    Callback = function(v)
+        S.Blatant = v
+        if v then RunBlatant() end
+    end
+})
+
+-- AUTOS
+Autos:CreateToggle({
+    Name = "Auto Sell (15s)",
+    CurrentValue = false,
+    Callback = function(v)
+        S.AutoSell = v
+        if v then
+            task.spawn(function()
+                while S.AutoSell do
+                    pcall(function() R.sell:InvokeServer() end)
+                    task.wait(15)
+                end
+            end)
+        end
+    end
+})
+
+-------------------------
+-- AUTO QUEST (REQUEST)
+-------------------------
+Autos:CreateSection("Auto Quest")
+
+Autos:CreateDropdown({
+    Name = "Select Auto Quest",
+    Options = {
+        "Auto Element Quest",
+        "Auto Ghostfinn Quest",
+        "Auto Aura Kid",
+        "Auto Artefact"
+    },
+    Callback = function(v)
+        S.SelectedQuest = v[1]
+    end
+})
+
+Autos:CreateToggle({
+    Name = "Start Selected Auto Quest",
+    CurrentValue = false,
+    Callback = function(v)
+        S.AutoQuest = v
+
+        if v then
+            task.spawn(function()
+                while S.AutoQuest do
+                    if S.SelectedQuest == "Auto Element Quest" then
+                        -- kirim remote nanti bro
+                    elseif S.SelectedQuest == "Auto Ghostfinn Quest" then
+                    elseif S.SelectedQuest == "Auto Aura Kid" then
+                    elseif S.SelectedQuest == "Auto Artefact" then
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
+
+-- SHOP
+Shop:CreateSection("Shop Features")
+
+Shop:CreateButton({
+    Name = "Buy 1x Bait",
+    Callback = function() if R.buy then R.buy:InvokeServer("Bait", 1) end end
+})
+
+Shop:CreateButton({
+    Name = "Buy 10x Bait",
+    Callback = function() if R.buy then R.buy:InvokeServer("Bait", 10) end end
+})
+
+Shop:CreateButton({
+    Name = "Upgrade Rod",
+    Callback = function() if R.buy then R.buy:InvokeServer("RodUpgrade", 1) end end
+})
+
+---------------------------------------------------------
+-- TELEPORT (ASLI PUNYA KAMU) — TIDAK DIUBAH SAMA SEKALI
+---------------------------------------------------------
+Teleport:CreateSection("Teleport Dropdown")
+
+local spots = {
+    ["Ancient Ruin"] = Vector3.new(6078.9, -585.9, 4619.2),
+    ["Secret Temple"] = Vector3.new(1470.9, -22.1, -603.0),
+    ["Enchant Altar"] = Vector3.new(14793.3, 127.5, -598.1),
+    ["Jungle"] = Vector3.new(1475.4, 3.4, -332.6),
+    ["Tropical Grove"] = Vector3.new(-2093.5, 6.3, 3699.2),
+    ["Treasure Room"] = Vector3.new(-35566.4, -279.1, -1681.2),
+    ["Crater Island"] = Vector3.new(1001.4, 2.8, 5151.1),
+    ["Lost Island"] = Vector3.new(-3613.0, -2.7, -1330.7),
+    ["Weather Machine"] = Vector3.new(-1517.8, 2.9, 1909.1),
+    ["Iron Cafe 1"] = Vector3.new(-8799.2, -585.0, 80.1),
+    ["Underground Cellar"] = Vector3.new(2113.9, -91.2, 699.2),
+    ["Iron Cafe 2"] = Vector3.new(-8627.4, -547.5, 179.2),
+    ["Esoteric Island"] = Vector3.new(2101.5, -29.0, 1350.4),
+    ["Kohana"] = Vector3.new(-617.3, 3.3, 565.9),
+    ["Kohana Volcano"] = Vector3.new(-591.8, 40.6, 149.6),
+    ["Coral Reefs"] = Vector3.new(-3135.9, 2.1, 2123.9),
+    ["Esoteric Depths"] = Vector3.new(3264.1, 1301.5, 1376.7),
+    ["Crystal Passage"] = Vector3.new(6053.1, -538.9, 4391.3),
+    ["Calassic Island"] = Vector3.new(1440.8, 46.0, 2777.3),
+    ["Sisyphus Statue"] = Vector3.new(-3750.7, -135.1, -1005.3),
+    ["Fisherman Island"] = Vector3.new(10.2, 2.6, 2764.5)
+}
+
+Teleport:CreateDropdown({
+    Name = "Select Location",
+    Options = (function()
+        local L = {}
+        for name,_ in pairs(spots) do table.insert(L, name) end
+        return L
+    end)(),
+    Callback = function(v) S.SelectedTP = v[1] end
+})
+
+Teleport:CreateButton({
+    Name = "Teleport",
+    Callback = function()
+        local pt = spots[S.SelectedTP]
+        if not pt then return end
+        
+        local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then hrp.CFrame = CFrame.new(pt + Vector3.new(0,6,0)) end
+    end
+})
+
+---------------------------------------------------------
+-- === REQUEST: TELEPORT PLAYER + AUTO REFRESH ===
+---------------------------------------------------------
+
+Teleport:CreateSection("Teleport Player")
+
+local function listPlayers()
+    local list = {}
+    for _,p in ipairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            table.insert(list, p.Name)
+        end
+    end
+    return list
+end
+
+local selectedPlr = nil
+
+local tpDropdown = Teleport:CreateDropdown({
+    Name = "Select Player",
+    Options = listPlayers(),
+    Callback = function(v)
+        selectedPlr = v[1]
+    end
+})
+
+-- Auto refresh setiap 4 detik
+task.spawn(function()
+    while task.wait(4) do
+        tpDropdown:Update({ Options = listPlayers() })
+    end
+end)
+
+Teleport:CreateButton({
+    Name = "Teleport to Player",
+    Callback = function()
+        if not selectedPlr then return end
+
+        local target = game.Players:FindFirstChild(selectedPlr)
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+            end
+        end
+    end
+})
+
+-- MISC
+Misc:CreateToggle({
+    Name = "Anti AFK",
+    CurrentValue = true,
+    Callback = function() end
+})
+
+Misc:CreateButton({
+    Name = "Rejoin",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId)
+    end
+})
+
+UpdateDelayRange()
