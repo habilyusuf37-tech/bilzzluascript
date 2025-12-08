@@ -1,0 +1,352 @@
+-- Fish It! ElementHub by bilzz → Orion UI FIXED (safer callbacks + slider fix)
+-- Paste langsung. Designed to avoid "partial render" by wrapping risky callbacks in pcall.
+
+local OrionLib = loadstring(game:HttpGetAsync(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "Fish It! ElementHub by bilzz",
+    HidePremium = false,
+    IntroEnabled = true,
+    IntroText = "Loading ElementHub...",
+    SaveConfig = true,
+    ConfigFolder = "FishItHub"
+})
+
+-- safe notification (pcall so it won't break UI load)
+pcall(function()
+    OrionLib:MakeNotification({
+        Name = "ElementHub",
+        Content = "Loaded with Orion UI - Fixed for stability!",
+        Image = "rbxassetid://4483345998",
+        Time = 5
+    })
+end)
+
+-- REMOTES (safe wait)
+local net
+local success_net, err = pcall(function()
+    net = game:GetService("ReplicatedStorage")
+        :WaitForChild("Packages")
+        :WaitForChild("_Index")
+        :WaitForChild("sleitnick_net@0.2.0")
+        :WaitForChild("net")
+end)
+if not success_net then
+    warn("Gagal ambil net:", err)
+end
+
+local R = {}
+if net then
+    R = {
+        equip  = net:FindFirstChild("RE/EquipToolFromHotbar"),
+        charge = net:FindFirstChild("RF/ChargeFishingRod"),
+        reel   = net:FindFirstChild("RF/RequestFishingMinigameStarted"),
+        finish = net:FindFirstChild("RE/FishingCompleted"),
+        sell   = net:FindFirstChild("RF/SellAllItems"),
+        buy    = net:FindFirstChild("RF/PurchaseShopItem")
+    }
+else
+    -- fallback nils
+    R = { equip=nil, charge=nil, reel=nil, finish=nil, sell=nil, buy=nil }
+end
+
+local S = {
+    Blatant    = false,
+    Delay      = 2.3,
+    Rod        = "Ghostfinn",
+    AutoSell   = false,
+    SelectedTP = nil,
+    AutoQuest  = false,
+    SelectedQuest = nil
+}
+
+local RodDelays = {
+    Element   = {min=1.6, max=1.9},
+    Ghostfinn = {min=1.9, max=2.3}
+}
+
+-- FUNGSI
+local function FishOnce()
+    pcall(function()
+        if R.equip then R.equip:FireServer(1) end
+        task.wait(0.05)
+        if R.charge then R.charge:InvokeServer() end
+        task.wait(0.05)
+        local t = workspace.DistributedGameTime
+        local rx = -1.23 + math.random(-300,300)/10000
+        local ry = 0.106 + math.random(-200,200)/10000
+        if R.reel then R.reel:InvokeServer(rx, ry, t) end
+        task.wait(1.1)
+        if R.finish then R.finish:FireServer() end
+    end)
+end
+
+local function RunBlatant()
+    task.spawn(function()
+        while S.Blatant do
+            FishOnce()
+            task.wait(S.Delay or 2.3)
+        end
+    end)
+end
+
+-- TABS
+local MainTab     = Window:MakeTab({ Name = "Main", Icon = "rbxassetid://4483362458", PremiumOnly = false })
+local AutosTab    = Window:MakeTab({ Name = "Autos", Icon = "rbxassetid://4483362458", PremiumOnly = false })
+local ShopTab     = Window:MakeTab({ Name = "Shop", Icon = "rbxassetid://4483362458", PremiumOnly = false })
+local TeleportTab = Window:MakeTab({ Name = "Teleport", Icon = "rbxassetid://4483362458", PremiumOnly = false })
+local MiscTab     = Window:MakeTab({ Name = "Misc", Icon = "rbxassetid://4483362458", PremiumOnly = false })
+
+-- MAIN TAB (safe slider update)
+local DelaySlider -- declare first so it's in scope
+
+local function UpdateDelaySlider()
+    local r = RodDelays[S.Rod] or {min = 1.6, max = 2.3}
+    -- protect all calls so any broken slider won't error the whole UI
+    pcall(function()
+        if DelaySlider then
+            DelaySlider:SetRange(r.min, r.max)
+            local default = (r.min + r.max) / 2
+            DelaySlider:SetValue(default)
+            S.Delay = default
+        else
+            -- if slider not created yet, set S.Delay fallback
+            S.Delay = (r.min + r.max) / 2
+        end
+    end)
+end
+
+local RodDropdown = MainTab:AddDropdown({
+    Name = "Select Rod",
+    Default = "Ghostfinn",
+    Options = {"Element", "Ghostfinn"},
+    Callback = function(v)
+        pcall(function()
+            S.Rod = v
+            UpdateDelaySlider()
+        end)
+    end
+})
+
+-- create DelaySlider with safe initial range based on S.Rod
+do
+    local initial = RodDelays[S.Rod] or {min=1.6, max=2.3}
+    DelaySlider = MainTab:AddSlider({
+        Name = "Delay",
+        Min = initial.min,
+        Max = initial.max,
+        Default = (initial.min + initial.max) / 2,
+        Color = Color3.fromRGB(255,255,255),
+        Increment = 0.05,
+        ValueName = "s",
+        Callback = function(v)
+            pcall(function() S.Delay = v end)
+        end
+    })
+end
+
+MainTab:AddToggle({
+    Name = "Blatant Auto Fish",
+    Default = false,
+    Callback = function(v)
+        pcall(function()
+            S.Blatant = v
+            if v then RunBlatant() end
+        end)
+    end
+})
+
+-- ensure slider default correct
+UpdateDelaySlider()
+
+-- AUTOS TAB
+AutosTab:AddToggle({
+    Name = "Auto Sell (15s)",
+    Default = false,
+    Callback = function(v)
+        pcall(function()
+            S.AutoSell = v
+            if v then
+                task.spawn(function()
+                    while S.AutoSell do
+                        pcall(function()
+                            if R.sell then R.sell:InvokeServer() end
+                        end)
+                        task.wait(15)
+                    end
+                end)
+            end
+        end)
+    end
+})
+
+local QuestDropdown = AutosTab:AddDropdown({
+    Name = "Select Auto Quest",
+    Default = "Auto Element Quest",
+    Options = {
+        "Auto Element Quest",
+        "Auto Ghostfinn Quest",
+        "Auto Aura Kid",
+        "Auto Artefact"
+    },
+    Callback = function(v)
+        pcall(function() S.SelectedQuest = v end)
+    end
+})
+
+AutosTab:AddToggle({
+    Name = "Start Selected Auto Quest",
+    Default = false,
+    Callback = function(v)
+        pcall(function()
+            S.AutoQuest = v
+            if v then
+                task.spawn(function()
+                    while S.AutoQuest do
+                        -- Isi logic quest di sini (pcall untuk safety)
+                        pcall(function()
+                            -- placeholder quest logic
+                            -- e.g., teleport & interact (user to implement)
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            end
+        end)
+    end
+})
+
+-- SHOP TAB
+ShopTab:AddButton({
+    Name = "Buy 1x Bait",
+    Callback = function()
+        pcall(function() if R.buy then R.buy:InvokeServer("Bait", 1) end end)
+    end
+})
+
+ShopTab:AddButton({
+    Name = "Buy 10x Bait",
+    Callback = function()
+        pcall(function() if R.buy then R.buy:InvokeServer("Bait", 10) end end)
+    end
+})
+
+ShopTab:AddButton({
+    Name = "Upgrade Rod",
+    Callback = function()
+        pcall(function() if R.buy then R.buy:InvokeServer("RodUpgrade", 1) end end)
+    end
+})
+
+-- TELEPORT TAB
+local spots = {
+    ["Ancient Ruin"] = Vector3.new(6078.9, -585.9, 4619.2),
+    ["Secret Temple"] = Vector3.new(1470.9, -22.1, -603.0),
+    ["Enchant Altar"] = Vector3.new(14793.3, 127.5, -598.1),
+    ["Jungle"] = Vector3.new(1475.4, 3.4, -332.6),
+    ["Tropical Grove"] = Vector3.new(-2093.5, 6.3, 3699.2),
+    ["Treasure Room"] = Vector3.new(-35566.4, -279.1, -1681.2),
+    ["Crater Island"] = Vector3.new(1001.4, 2.8, 5151.1),
+    ["Lost Island"] = Vector3.new(-3613.0, -2.7, -1330.7),
+    ["Weather Machine"] = Vector3.new(-1517.8, 2.9, 1909.1),
+    ["Iron Cafe 1"] = Vector3.new(-8799.2, -585.0, 80.1),
+    ["Underground Cellar"] = Vector3.new(2113.9, -91.2, 699.2),
+    ["Iron Cafe 2"] = Vector3.new(-8627.4, -547.5, 179.2),
+    ["Esoteric Island"] = Vector3.new(2101.5, -29.0, 1350.4),
+    ["Kohana"] = Vector3.new(-617.3, 3.3, 565.9),
+    ["Kohana Volcano"] = Vector3.new(-591.8, 40.6, 149.6),
+    ["Coral Reefs"] = Vector3.new(-3135.9, 2.1, 2123.9),
+    ["Esoteric Depths"] = Vector3.new(3264.1, 1301.5, 1376.7),
+    ["Crystal Passage"] = Vector3.new(6053.1, -538.9, 4391.3),
+    ["Calassic Island"] = Vector3.new(1440.8, 46.0, 2777.3),
+    ["Sisyphus Statue"] = Vector3.new(-3750.7, -135.1, -1005.3),
+    ["Fisherman Island"] = Vector3.new(10.2, 2.6, 2764.5)
+}
+
+local tpOptions = {}
+for k, _ in pairs(spots) do table.insert(tpOptions, k) end
+
+local TPDropdown = TeleportTab:AddDropdown({
+    Name = "Select Location",
+    Default = "Fisherman Island",
+    Options = tpOptions,
+    Callback = function(v)
+        pcall(function() S.SelectedTP = v end)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Teleport",
+    Callback = function()
+        pcall(function()
+            if not S.SelectedTP or not spots[S.SelectedTP] then return end
+            local pos = spots[S.SelectedTP]
+            local lp = game.Players.LocalPlayer
+            local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.CFrame = CFrame.new(pos + Vector3.new(0,6,0)) end
+        end)
+    end
+})
+
+-- Teleport to Player
+local selectedPlr = nil
+local function listPlayers()
+    local list = {}
+    for _,p in ipairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            table.insert(list, p.Name)
+        end
+    end
+    return list
+end
+
+local playerDropdown = TeleportTab:AddDropdown({
+    Name = "Select Player",
+    Default = "",
+    Options = listPlayers(),
+    Callback = function(v)
+        pcall(function() selectedPlr = v end)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Teleport to Player",
+    Callback = function()
+        pcall(function()
+            if not selectedPlr then return end
+            local target = game.Players:FindFirstChild(selectedPlr)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+                end
+            end
+        end)
+    end
+})
+
+-- refresh list safely
+task.spawn(function()
+    while task.wait(4) do
+        pcall(function()
+            playerDropdown:Refresh(listPlayers())
+        end)
+    end
+end)
+
+-- MISC TAB
+MiscTab:AddToggle({
+    Name = "Anti AFK",
+    Default = true,
+    Callback = function(v) pcall(function() end) end
+})
+
+MiscTab:AddButton({
+    Name = "Rejoin Server",
+    Callback = function()
+        pcall(function() game:GetService("TeleportService"):Teleport(game.PlaceId) end)
+    end
+})
+
+-- Finally init Orion (pcall for safety)
+pcall(function() OrionLib:Init() end)
