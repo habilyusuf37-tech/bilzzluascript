@@ -74,7 +74,7 @@ local function FishOnce()
         local ry = 0.106 + math.random(-200,200)/10000
 
         R.reel:InvokeServer(rx, ry, t)
-        task.wait(1.1)
+        task.wait(0.950)
 
         R.finish:FireServer()
     end)
