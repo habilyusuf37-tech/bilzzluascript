@@ -69,14 +69,14 @@ local RodDelays = {
 local function FishOnce()
     pcall(function()
         if R.equip then R.equip:FireServer(1) end
-        task.wait(0.05)
+        task.wait(0)
         if R.charge then R.charge:InvokeServer() end
-        task.wait(0.05)
+        task.wait(0)
         local t = workspace.DistributedGameTime
         local rx = -1.23 + math.random(-300,300)/10000
         local ry = 0.106 + math.random(-200,200)/10000
         if R.reel then R.reel:InvokeServer(rx, ry, t) end
-        task.wait(1.1)
+        task.wait(1)
         if R.finish then R.finish:FireServer() end
     end)
 end
