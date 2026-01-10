@@ -1,0 +1,364 @@
+-- =====================================================
+-- VOIDLINE HUB PRO FULL | AUTO FARM + TELEPORT + DEALER
+-- FPS & Ping real-time, Layar Hitam Full Screen
+-- =====================================================
+
+-- =========================
+-- KEY SYSTEM PRO
+-- =========================
+local KUNCI_BENAR = "Key-9183"
+local LINK_KEY = "https://link-target.net/2967932/qfMTGsFg7xyr"
+local FILE_NAME = "VoidlineHub_Config.txt"
+local DURASI_JAM = 12
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function SaveKey()
+    if writefile then writefile(FILE_NAME, tostring(tick())) end
+end
+
+local function CheckKey()
+    if isfile and isfile(FILE_NAME) then
+        local savedTime = tonumber(readfile(FILE_NAME))
+        if savedTime and (tick() - savedTime)/3600 < DURASI_JAM then return true end
+    end
+    return false
+end
+
+local function JalankanScriptUtama()
+    -- =====================================================
+    -- BLACKOUT FULL SCREEN SETUP
+    -- =====================================================
+    local BlackoutGui = Instance.new("ScreenGui")
+    BlackoutGui.Name = "VoidlineBlackout"
+    BlackoutGui.IgnoreGuiInset = true
+    BlackoutGui.DisplayOrder = 998
+    BlackoutGui.ResetOnSpawn = false
+    BlackoutGui.Enabled = false
+    BlackoutGui.Parent = game:GetService("CoreGui")
+
+    local BlackFrame = Instance.new("Frame")
+    BlackFrame.Size = UDim2.fromScale(1, 1)
+    BlackFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    BlackFrame.BorderSizePixel = 0
+    BlackFrame.Parent = BlackoutGui
+
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.fromScale(0.5, 0.1)
+    TitleText.Position = UDim2.fromScale(0.25, 0.45)
+    TitleText.BackgroundTransparency = 1
+    TitleText.Text = "VoidlineHub\nby billzz"
+    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleText.TextSize = 25
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.Parent = BlackFrame
+
+    -- =========================
+    -- LOAD OBSIDIAN UI
+    -- =========================
+    local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+    local Library = loadstring(game:HttpGet(repo.."Library.lua"))()
+    local Window = Library:CreateWindow({
+        Title = "Voidline Hub",
+        Footer = "Combat System",
+        ShowCustomCursor = true,
+    })
+
+    -- =========================
+    -- TABS
+    -- =========================
+    local MainTab = Window:AddTab("Main")
+    local StatsTab = Window:AddTab("Stats")
+    local TeleportTab = Window:AddTab("Teleport")
+    local DealerTab = Window:AddTab("Dealer")
+
+    -- =========================
+    -- MAIN TAB
+    -- =========================
+    local AutoFarmGroup = MainTab:AddLeftGroupbox("AutoFarm")
+    local EnableAF = AutoFarmGroup:AddToggle("EnableAutoFarm", {Text="Enable AutoFarm", Default=false})
+    local CancelAF = AutoFarmGroup:AddToggle("CancelAutoFarm", {Text="Cancel AutoFarm", Default=false})
+
+    local SettingGroup = MainTab:AddRightGroupbox("Setting")
+    local AntiAFK = SettingGroup:AddToggle("AntiAFK", {Text="Anti AFK", Default=false})
+    local ReduceMap = SettingGroup:AddToggle("ReduceMap", {Text="Reduce Map", Default=false})
+    local RejoinBtn = SettingGroup:AddButton("Rejoin")
+    local ServerHopBtn = SettingGroup:AddButton("ServerHop")
+
+    -- =========================
+    -- STATS TAB
+    -- =========================
+    local StatsGroup = StatsTab:AddLeftGroupbox("Stats")
+    local StatusFields = {
+        "Running Time: 0",
+        "Target: Not Set",
+        "Total Earnings: RP.0",
+        "Current Money: RP.0"
+    }
+    local Labels = {}
+    for i,v in ipairs(StatusFields) do
+        Labels[i] = StatsGroup:AddLabel(v)
+    end
+
+    local ServerGroup = StatsTab:AddRightGroupbox("Server")
+    local ExecutorLabel = ServerGroup:AddLabel("Executor: Delta")
+    local FPSLabel = ServerGroup:AddLabel("FPS: 0")
+    local PingLabel = ServerGroup:AddLabel("Ping: 0")
+
+    -- =========================
+    -- FPS & PING REALTIME
+    -- =========================
+    local RunService = game:GetService("RunService")
+    local lastTime, frameCount = tick(), 0
+
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        if tick() - lastTime >= 1 then
+            local fps = math.floor(frameCount / (tick() - lastTime))
+            FPSLabel:SetText("FPS: "..fps)
+            frameCount = 0
+            lastTime = tick()
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+            PingLabel:SetText("Ping: "..ping.." ms")
+        end
+    end)
+
+    -- =========================
+    -- TELEPORT TAB
+    -- =========================
+    local TPGroup = TeleportTab:AddLeftGroupbox("Teleport")
+    TPGroup:AddDropdown("TeleportList", {Text="Select Location", Values={"Town","Shop","Farm"}})
+    TPGroup:AddButton("Open"):OnClick(function()
+        local selected = TPGroup.TeleportList.Value
+        if selected == "Town" then
+            LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(0,5,0))
+        elseif selected == "Shop" then
+            LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(50,5,50))
+        elseif selected == "Farm" then
+            LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(-50,5,-50))
+        end
+    end)
+
+    -- =========================
+    -- DEALER TAB
+    -- =========================
+    local DealerGroup = DealerTab:AddLeftGroupbox("Dealer")
+    DealerGroup:AddDropdown("DealerList", {Text="Select Dealer", Values={"Dealer1","Dealer2"}})
+    DealerGroup:AddButton("Open"):OnClick(function()
+        local dealer = DealerGroup.DealerList.Value
+        if dealer == "Dealer1" then
+            LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(100,5,100))
+        elseif dealer == "Dealer2" then
+            LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(-100,5,100))
+        end
+    end)
+
+    -- =========================
+    -- CFly + Noclip
+    -- =========================
+    local FLY_SPEED = 280
+    local HEIGHT_OFFSET = 50
+    local flyEnabled = false
+    local targets = {
+        CFrame.new(-39.2422943, 12.8, -575.5885),
+        CFrame.new(-16704.2852, 115.08, 10064.5264)
+    }
+    local targetIndex = 1
+
+    local function getHumanoid()
+        local char = LocalPlayer.Character
+        return char and char:FindFirstChildOfClass("Humanoid")
+    end
+
+    local function getSeat()
+        local hum = getHumanoid()
+        return hum and hum.SeatPart
+    end
+
+    local function getMotorFromSeat(seat)
+        return seat and seat:FindFirstAncestorOfClass("Model")
+    end
+
+    local function noclipMotorAndChar(motor)
+        if motor then
+            for _, part in ipairs(motor:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end
+    end
+
+    -- =========================
+    -- REAL-TIME STATS PLAYERDATA
+    -- =========================
+    local PlayerData = LocalPlayer:WaitForChild("PlayerData")
+    local runningTime = 0
+
+    local function formatRP(num)
+        local formatted = tostring(num)
+        while true do
+            formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1.%2')
+            if k == 0 then break end
+        end
+        return "RP."..formatted
+    end
+
+    local function updateStats()
+        if PlayerData.DataLoaded.Value then
+            local money = PlayerData:FindFirstChild("RPValue") and PlayerData.RPValue.Value or 0
+            Labels[4]:SetText("Current Money: "..formatRP(money))
+            Labels[3]:SetText("Total Earnings: "..formatRP(money))
+        end
+    end
+
+    PlayerData.RPValue:GetPropertyChangedSignal("Value"):Connect(updateStats)
+    if PlayerData:FindFirstChild("DataUpdated") and PlayerData.DataUpdated:IsA("RemoteEvent") then
+        PlayerData.DataUpdated.OnClientEvent:Connect(updateStats)
+    end
+
+    -- =========================
+    -- AUTOFARM + CANCEL AF
+    -- =========================
+    RunService.Heartbeat:Connect(function()
+        if not flyEnabled then return end
+        local seat = getSeat()
+        local motor = getMotorFromSeat(seat)
+        if motor and motor.PrimaryPart then
+            noclipMotorAndChar(motor)
+            local targetCFrame = targets[targetIndex]
+            local targetPos = Vector3.new(targetCFrame.Position.X, targetCFrame.Position.Y + HEIGHT_OFFSET, targetCFrame.Position.Z)
+            local direction = (targetPos - motor.PrimaryPart.Position).Magnitude > 0 and (targetPos - motor.PrimaryPart.Position).Unit or Vector3.new(0,0,0)
+            motor.PrimaryPart.AssemblyLinearVelocity = direction * FLY_SPEED
+
+            if not motor.PrimaryPart:FindFirstChild("AlignOrientation") then
+                local align = Instance.new("AlignOrientation")
+                align.Parent = motor.PrimaryPart
+                align.Mode = Enum.OrientationAlignment.ModeOne
+                align.MaxTorque = 1e5
+                align.Responsiveness = 200
+                align.CFrame = CFrame.new()
+                align.RigidityEnabled = true
+            end
+
+            if (motor.PrimaryPart.Position - targetPos).Magnitude < 20 then
+                targetIndex = targetIndex + 1
+                if targetIndex > #targets then targetIndex = 1 end
+            end
+        end
+    end)
+
+    -- =========================
+    -- RUNNING TIME + BLACKOUT TOGGLE
+    -- =========================
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            if flyEnabled then
+                runningTime = runningTime + 1
+                Labels[1]:SetText("Running Time: "..runningTime)
+                Labels[2]:SetText("Target: "..(targets[targetIndex] and "Set" or "Not Set"))
+                BlackoutGui.Enabled = true
+                updateStats()
+            else
+                BlackoutGui.Enabled = false
+            end
+        end
+    end)
+
+    -- =========================
+    -- TOGGLE HANDLERS
+    -- =========================
+    EnableAF:OnChanged(function(v)
+        flyEnabled = v
+    end)
+
+    CancelAF:OnChanged(function(v)
+        if v then
+            flyEnabled = false
+            -- teleport ke spawn saat cancel
+            LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(-686.03, 2.14, -776.49))
+        end
+    end)
+
+    AntiAFK:OnChanged(function(v)
+        if v then
+            LocalPlayer.Idled:Connect(function()
+                LocalPlayer.Character.Humanoid:Move(Vector3.new(0,0,0))
+            end)
+        end
+    end)
+
+    ReduceMap:OnChanged(function(v)
+        if workspace:FindFirstChild("MapSize") then
+            workspace.MapSize.Value = v and 50 or 100
+        end
+    end)
+
+    RejoinBtn:OnClick(function() game:GetService("TeleportService"):Teleport(game.PlaceId) end)
+    ServerHopBtn:OnClick(function() game:GetService("TeleportService"):Teleport(game.PlaceId) end)
+
+    print("[VOIDLINE HUB] Fully functional + CFly AutoFarm v6.4 READY (FPS & Ping ON, Total Earnings real-time)")
+end
+
+-- =====================================================
+-- START KEY SYSTEM
+-- =====================================================
+if CheckKey() then
+    JalankanScriptUtama()
+else
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "VoidlineKeySystem"
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0,330,0,160)
+    MainFrame.Position = UDim2.new(0.5,-165,0.5,-80)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.Parent = ScreenGui
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,20)
+
+    local KeyInput = Instance.new("TextBox")
+    KeyInput.Size = UDim2.new(0.84,0,0.22,0)
+    KeyInput.Position = UDim2.new(0.08,0,0.45,0)
+    KeyInput.BackgroundTransparency = 1
+    KeyInput.TextColor3 = Color3.fromRGB(255,255,255)
+    KeyInput.PlaceholderText = "Enter Key"
+    KeyInput.Font = Enum.Font.Gotham
+    KeyInput.TextSize = 14
+    KeyInput.Parent = MainFrame
+
+    local SubmitBtn = Instance.new("TextButton")
+    SubmitBtn.Size = UDim2.new(0.3,0,0.2,0)
+    SubmitBtn.Position = UDim2.new(0.62,0,0.72,0)
+    SubmitBtn.BackgroundColor3 = Color3.fromRGB(170,150,255)
+    SubmitBtn.Text = "→ Submit"
+    SubmitBtn.Font = Enum.Font.GothamBold
+    SubmitBtn.TextSize = 13
+    SubmitBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    SubmitBtn.Parent = MainFrame
+    Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0,10)
+
+    SubmitBtn.MouseButton1Click:Connect(function()
+        if KeyInput.Text == KUNCI_BENAR then
+            SaveKey()
+            ScreenGui:Destroy()
+            JalankanScriptUtama()
+        else
+            KeyInput.Text = ""
+            KeyInput.PlaceholderText = "Wrong Key!"
+        end
+    end)
+end
