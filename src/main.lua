@@ -43,7 +43,7 @@ TabBox:Toggle({
         task.spawn(function()
             while _G.AutoOpenBasic do
                 OpenBasicBox()
-                task.wait(0) -- Jeda agar tidak spam berlebihan
+                task.wait(0.3) -- Jeda agar tidak spam berlebihan
             end
         end)
     end
