@@ -1,11 +1,19 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- [[ PROTEKSI LOAD LIBRARY ]] --
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or Rayfield == nil then
+    warn("GAGAL LOAD RAYFIELD: Server Sirius mungkin sedang down atau koneksi lambat.")
+    return -- Berhenti supaya tidak muncul error 'nil value'
+end
 
 -- [[ CORE SERVICES ]] --
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local Player = game:GetService("Players").LocalPlayer
-local PlayerData = Player:WaitForChild("PlayerData")
+local PlayerData = Player:WaitForChild("PlayerData", 10) -- Tambahkan timeout agar tidak stuck
 local KurirEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("KurirEvent")
 local VirtualUser = game:GetService("VirtualUser") 
 
@@ -13,9 +21,8 @@ local VirtualUser = game:GetService("VirtualUser")
 _G.AutoKurir = false
 _G.TPSpeed = 0.1
 _G.TargetMoney = 0
-_G.EnableTarget = false
 
-local StartMoney = PlayerData.RPValue.Value
+local StartMoney = (PlayerData and PlayerData:FindFirstChild("RPValue")) and PlayerData.RPValue.Value or 0
 local TotalEarned = 0
 local SecondsRunning = 0
 local TargetPos = nil
@@ -23,7 +30,6 @@ local TargetName = ""
 local JobStarted = false
 
 -- [[ ANTI AFK SYSTEM ]] --
--- Menggunakan metode pcall agar tidak error jika VirtualUser gagal
 Player.Idled:Connect(function()
     pcall(function()
         VirtualUser:CaptureController()
@@ -83,22 +89,20 @@ local function StartFarming()
                 task.wait(0.8)
                 KurirEvent:FireServer("SpawnTruck")
                 
-                local myTruck = nil
-                for i = 1, 10 do
-                    myTruck = workspace:FindFirstChild("Truck_" .. Player.Name)
-                    if myTruck then break end
-                    task.wait(0.5)
-                end
-
+                task.wait(1)
                 root.CFrame = DepotPos
                 task.wait(0.8)
-                if workspace:FindFirstChild("DepotPaket") then
-                    fireproximityprompt(workspace.DepotPaket.PromptAmbil)
+                
+                -- Deteksi Proximity Depot lebih aman
+                local depot = workspace:FindFirstChild("DepotPaket")
+                if depot and depot:FindFirstChild("PromptAmbil") then
+                    fireproximityprompt(depot.PromptAmbil)
                 end
+                
                 KurirEvent:FireServer("RequestMisi")
                 
                 local timer = 0
-                while TargetName == "" and timer < 20 and _G.AutoKurir do
+                while TargetName == "" and timer < 15 and _G.AutoKurir do
                     task.wait(0.5)
                     timer = timer + 1
                 end
@@ -107,29 +111,31 @@ local function StartFarming()
 
                 root.CFrame = VisualPaketPos
                 task.wait(1)
+                
+                -- Cari Truck Player
+                local myTruck = workspace:FindFirstChild("Truck_" .. Player.Name)
                 if myTruck and myTruck:FindFirstChild("PaketVisual") then
                     local p = myTruck.PaketVisual:FindFirstChildOfClass("ProximityPrompt")
                     if p then 
-                        p:InputHoldBegin()
-                        task.wait(5.2)
-                        p:InputHoldEnd()
+                        fireproximityprompt(p)
+                        task.wait(5.5)
                     end
                 end
 
                 task.wait(_G.TPSpeed)
-                -- Height 20 sesuai permintaan
                 root.CFrame = CFrame.new(TargetPos + Vector3.new(0, 20, 0))
                 
                 task.wait(1.5)
-                local dp = workspace.DeliveryPoints:FindFirstChild(TargetName)
+                local dp = workspace:FindFirstChild("DeliveryPoints") and workspace.DeliveryPoints:FindFirstChild(TargetName)
                 if dp then
-                    fireproximityprompt(dp:FindFirstChildOfClass("ProximityPrompt"))
+                    local prompt = dp:FindFirstChildOfClass("ProximityPrompt")
+                    if prompt then fireproximityprompt(prompt) end
                 end
                 KurirEvent:FireServer("SelesaiMisi")
                 
                 TargetPos = nil
                 TargetName = ""
-                task.wait(3)
+                task.wait(2)
             end)
             if not success then warn("Farm Error: " .. tostring(err)) end
         end
@@ -138,9 +144,13 @@ end
 
 KurirEvent.OnClientEvent:Connect(function(areaName, areaData)
     TargetName = tostring(areaName)
-    if typeof(areaData) == "Vector3" then TargetPos = areaData
-    elseif typeof(areaData) == "Instance" and areaData:IsA("BasePart") then TargetPos = areaData.Position
-    else TargetPos = LocationMap[TargetName] end
+    if typeof(areaData) == "Vector3" then 
+        TargetPos = areaData
+    elseif typeof(areaData) == "Instance" and areaData:IsA("BasePart") then 
+        TargetPos = areaData.Position
+    else 
+        TargetPos = LocationMap[TargetName] 
+    end
 end)
 
 -- [[ UI WINDOW ]] --
@@ -152,10 +162,7 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false 
 })
 
--- TAB 1: AUTOFARM
 local TabFarm = Window:CreateTab("Autofarm", "truck")
-local SectionFarm1 = TabFarm:CreateSection("Main Farming")
-
 TabFarm:CreateToggle({
    Name = "Autofarm On/Off",
    CurrentValue = false,
@@ -173,245 +180,22 @@ TabFarm:CreateInput({
 
 -- TAB 2: STATS
 local TabStats = Window:CreateTab("Stats", "trending-up")
-local SectionStat1 = TabStats:CreateSection("Live Earnings")
-
 local LabelTime = TabStats:CreateLabel("Running Time: 00:00:00")
-local LabelPerHour = TabStats:CreateLabel("Estimated Earning/Hr: RP. 0")
 local LabelTotal = TabStats:CreateLabel("Total Earning: RP. 0")
-local LabelCurrent = TabStats:CreateLabel("Current Money: RP. 0")
-
-local SectionStat2 = TabStats:CreateSection("Client Info")
-local LabelFPS = TabStats:CreateLabel("FPS: 60")
-local LabelPing = TabStats:CreateLabel("Ping: 0ms")
 
 -- [[ STATS LOOP ]] --
 task.spawn(function()
     while true do
         task.wait(1)
         pcall(function()
-            if _G.AutoKurir then
-                SecondsRunning = SecondsRunning + 1
+            if _G.AutoKurir then SecondsRunning = SecondsRunning + 1 end
+            if PlayerData and PlayerData:FindFirstChild("RPValue") then
+                TotalEarned = PlayerData.RPValue.Value - StartMoney
+                LabelTotal:Set("Total Earning: " .. FormatMoney(TotalEarned))
             end
-            
-            local current = PlayerData.RPValue.Value
-            TotalEarned = current - StartMoney
-            
-            local earningPerHour = 0
-            if SecondsRunning > 10 and TotalEarned > 0 then
-                earningPerHour = (TotalEarned / SecondsRunning) * 3600
-            end
-
-            LabelCurrent:Set("Current Money: " .. FormatMoney(current))
-            LabelTotal:Set("Total Earning: " .. FormatMoney(TotalEarned))
-            LabelPerHour:Set("Estimated Earning/Hr: " .. FormatMoney(earningPerHour))
             LabelTime:Set("Running Time: " .. FormatTime(SecondsRunning))
-            
-            local fps = math.floor(1 / RunService.RenderStepped:Wait())
-            local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-            LabelFPS:Set("FPS: " .. fps)
-            LabelPing:Set("Ping: " .. ping .. "ms")
         end)
     end
 end)
 
-Rayfield:Notify({Title = "billzz hub", Content = "Script Fixed & Loaded!", Duration = 5})
-                        p:InputHoldBegin()
-                        task.wait(5.2)
-                        p:InputHoldEnd()
-                    end
-                end
-
-                task.wait(_G.TPSpeed)
-                -- DIUBAH: Height dinaikkan menjadi 20 agar lebih aman dari collision
-                root.CFrame = CFrame.new(TargetPos + Vector3.new(0, 20, 0))
-                
-                task.wait(1.5)
-                local dp = workspace.DeliveryPoints:FindFirstChild(TargetName)
-                if dp then
-                    fireproximityprompt(dp:FindFirstChildOfClass("ProximityPrompt"))
-                end
-                KurirEvent:FireServer("SelesaiMisi")
-                
-                TargetPos = nil
-                TargetName = ""
-                task.wait(3)
-            end)
-        end
-    end)
-end
-
-KurirEvent.OnClientEvent:Connect(function(areaName, areaData)
-    TargetName = tostring(areaName)
-    if typeof(areaData) == "Vector3" then TargetPos = areaData
-    elseif typeof(areaData) == "Instance" and areaData:IsA("BasePart") then TargetPos = areaData.Position
-    else TargetPos = LocationMap[TargetName] end
-end)
-
--- [[ UI WINDOW ]] --
-local Window = Rayfield:CreateWindow({
-   Name = "x2zu [ Stellar ]",
-   LoadingTitle = "bilzz hub",
-   LoadingSubtitle = "by bill",
-   ConfigurationSaving = { Enabled = false },
-   KeySystem = false 
-})
-
--- TAB 1: AUTOFARM
-local TabFarm = Window:CreateTab("Autofarm", "truck")
-local SectionFarm1 = TabFarm:CreateSection("Main Farming")
-
-TabFarm:CreateToggle({
-   Name = "Autofarm On/Off",
-   CurrentValue = false,
-   Callback = function(Value)
-      _G.AutoKurir = Value
-      if Value then StartFarming() end
-   end,
-})
-
-TabFarm:CreateInput({
-   Name = "Speed Teleport",
-   PlaceholderText = "Default: 0.1",
-   Callback = function(Text) _G.TPSpeed = tonumber(Text) or 0.1 end,
-})
-
--- TAB 2: STATS
-local TabStats = Window:CreateTab("Stats", "trending-up")
-local SectionStat1 = TabStats:CreateSection("Live Earnings")
-
-local LabelTime = TabStats:CreateLabel("Running Time: 00:00:00")
-local LabelPerHour = TabStats:CreateLabel("Estimated Earning/Hr: RP. 0")
-local LabelTotal = TabStats:CreateLabel("Total Earning: RP. 0")
-local LabelCurrent = TabStats:CreateLabel("Current Money: RP. 0")
-
-local SectionStat2 = TabStats:CreateSection("Client Info")
-local LabelFPS = TabStats:CreateLabel("FPS: 60")
-local LabelPing = TabStats:CreateLabel("Ping: 0ms")
-
--- [[ STATS LOOP ]] --
-task.spawn(function()
-    while true do
-        task.wait(1)
-        pcall(function()
-            if _G.AutoKurir then
-                SecondsRunning = SecondsRunning + 1
-            end
-            
-            local current = PlayerData.RPValue.Value
-            TotalEarned = current - StartMoney
-            
-            local earningPerHour = 0
-            if SecondsRunning > 10 and TotalEarned > 0 then
-                earningPerHour = (TotalEarned / SecondsRunning) * 3600
-            end
-
-            LabelCurrent:Set("Current Money: " .. FormatMoney(current))
-            LabelTotal:Set("Total Earning: " .. FormatMoney(TotalEarned))
-            LabelPerHour:Set("Estimated Earning/Hr: " .. FormatMoney(earningPerHour))
-            LabelTime:Set("Running Time: " .. FormatTime(SecondsRunning))
-            
-            local fps = math.floor(1 / RunService.RenderStepped:Wait())
-            local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-            LabelFPS:Set("FPS: " .. fps)
-            LabelPing:Set("Ping: " .. ping .. "ms")
-        end)
-    end
-end)
-
-Rayfield:Notify({Title = "billzz hub", Content = "Script Loaded Successfully! (Height: 20)", Duration = 5})
-                root.CFrame = CFrame.new(TargetPos + Vector3.new(0, 10, 0))
-                
-                task.wait(1.5)
-                local dp = workspace.DeliveryPoints:FindFirstChild(TargetName)
-                if dp then
-                    fireproximityprompt(dp:FindFirstChildOfClass("ProximityPrompt"))
-                end
-                KurirEvent:FireServer("SelesaiMisi")
-                
-                TargetPos = nil
-                TargetName = ""
-                task.wait(3)
-            end)
-        end
-    end)
-end
-
-KurirEvent.OnClientEvent:Connect(function(areaName, areaData)
-    TargetName = tostring(areaName)
-    if typeof(areaData) == "Vector3" then TargetPos = areaData
-    elseif typeof(areaData) == "Instance" and areaData:IsA("BasePart") then TargetPos = areaData.Position
-    else TargetPos = LocationMap[TargetName] end
-end)
-
--- [[ UI WINDOW ]] --
-local Window = Rayfield:CreateWindow({
-   Name = "x2zu [ Stellar ]",
-   LoadingTitle = "Stellar Hub Kurir",
-   LoadingSubtitle = "by x2zu",
-   ConfigurationSaving = { Enabled = false },
-   KeySystem = false -- Key dimatikan
-})
-
--- TAB 1: AUTOFARM
-local TabFarm = Window:CreateTab("Autofarm", "truck")
-local SectionFarm1 = TabFarm:CreateSection("Main Farming")
-
-TabFarm:CreateToggle({
-   Name = "Autofarm On/Off",
-   CurrentValue = false,
-   Callback = function(Value)
-      _G.AutoKurir = Value
-      if Value then StartFarming() end
-   end,
-})
-
-TabFarm:CreateInput({
-   Name = "Speed Teleport",
-   PlaceholderText = "Default: 0.1",
-   Callback = function(Text) _G.TPSpeed = tonumber(Text) or 0.1 end,
-})
-
--- TAB 2: STATS
-local TabStats = Window:CreateTab("Stats", "trending-up")
-local SectionStat1 = TabStats:CreateSection("Live Earnings")
-
-local LabelTime = TabStats:CreateLabel("Running Time: 00:00:00")
-local LabelPerHour = TabStats:CreateLabel("Estimated Earning/Hr: RP. 0")
-local LabelTotal = TabStats:CreateLabel("Total Earning: RP. 0")
-local LabelCurrent = TabStats:CreateLabel("Current Money: RP. 0")
-
-local SectionStat2 = TabStats:CreateSection("Client Info")
-local LabelFPS = TabStats:CreateLabel("FPS: 60")
-local LabelPing = TabStats:CreateLabel("Ping: 0ms")
-
--- [[ STATS LOOP ]] --
-task.spawn(function()
-    while true do
-        task.wait(1)
-        pcall(function()
-            if _G.AutoKurir then
-                SecondsRunning = SecondsRunning + 1
-            end
-            
-            local current = PlayerData.RPValue.Value
-            TotalEarned = current - StartMoney
-            
-            local earningPerHour = 0
-            if SecondsRunning > 10 and TotalEarned > 0 then
-                earningPerHour = (TotalEarned / SecondsRunning) * 3600
-            end
-
-            LabelCurrent:Set("Current Money: " .. FormatMoney(current))
-            LabelTotal:Set("Total Earning: " .. FormatMoney(TotalEarned))
-            LabelPerHour:Set("Estimated Earning/Hr: " .. FormatMoney(earningPerHour))
-            LabelTime:Set("Running Time: " .. FormatTime(SecondsRunning))
-            
-            local fps = math.floor(1 / RunService.RenderStepped:Wait())
-            local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-            LabelFPS:Set("FPS: " .. fps)
-            LabelPing:Set("Ping: " .. ping .. "ms")
-        end)
-    end
-end)
-
-Rayfield:Notify({Title = "Stellar Hub", Content = "Script Loaded Successfully!", Duration = 5})
+Rayfield:Notify({Title = "billzz hub", Content = "Script Loaded using Sirius!", Duration = 5})
